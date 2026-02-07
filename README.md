@@ -1,5 +1,7 @@
 # ワードウルフ オンライン - セットアップガイド
 
+https://tatstatstats123-sketch.github.io/word-wolf-web/
+
 ## 🚀 Firebase セットアップ（無料）
 
 ### 1. Firebaseプロジェクトを作成
