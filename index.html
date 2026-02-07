@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ワードウルフ オンライン 🐺</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .room-code {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .room-code h2 {
+            color: #667eea;
+            font-size: 2em;
+            letter-spacing: 0.2em;
+        }
+
+        .players-list {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .player-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-name {
+            font-weight: 600;
+        }
+
+        .host-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 0.8em;
+        }
+
+        .word-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            font-size: 2.5em;
+            margin: 30px 0;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .wolf-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 3em;
+            color: #667eea;
+            margin: 30px 0;
+            font-weight: bold;
+        }
+
+        .voting-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .vote-btn {
+            padding: 20px 10px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            font-size: 1em;
+        }
+
+        .vote-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+
+        .vote-btn.voted {
+            background: #43e97b;
+            color: white;
+            border-color: #43e97b;
+        }
+
+        .vote-count {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .secondary-btn {
+            background: #6c757d;
+        }
+
+        .game-info {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .game-info p {
+            margin: 10px 0;
+            color: #333;
+        }
+
+        .instruction {
+            color: #666;
+            line-height: 1.6;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .winner {
+            font-size: 1.5em;
+            color: #43e97b;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐺 ワードウルフ</h1>
+        <p class="subtitle">オンライン対戦！</p>
+
+        <!-- Home Screen -->
+        <div id="homeScreen" class="screen active">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="showTab('create')">ルーム作成</button>
+                <button class="tab-btn" onclick="showTab('join')">ルーム参加</button>
+            </div>
+
+            <!-- Create Room Tab -->
+            <div id="createTab" class="tab-content">
+                <div class="input-group">
+                    <label for="hostName">あなたの名前：</label>
+                    <input type="text" id="hostName" placeholder="例：太郎">
+                </div>
+                <button onclick="createRoom()">ルームを作成</button>
+            </div>
+
+            <!-- Join Room Tab -->
+            <div id="joinTab" class="tab-content" style="display: none;">
+                <div class="input-group">
+                    <label for="playerName">あなたの名前：</label>
+                    <input type="text" id="playerName" placeholder="例：花子">
+                </div>
+                <div class="input-group">
+                    <label for="roomCode">ルームコード：</label>
+                    <input type="text" id="roomCode" placeholder="例：ABCD" maxlength="4" style="text-transform: uppercase;">
+                </div>
+                <button onclick="joinRoom()">参加</button>
+            </div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobbyScreen" class="screen">
+            <div class="room-code">
+                <p style="color: #666; margin-bottom: 10px;">ルームコード</p>
+                <h2 id="displayRoomCode"></h2>
+                <p style="color: #666; margin-top: 10px; font-size: 0.9em;">友達に共有しよう！</p>
+            </div>
+
+            <div class="players-list">
+                <h3 style="margin-bottom: 15px; color: #333;">参加者 (<span id="playerCount">0</span>人)</h3>
+                <div id="playersList"></div>
+            </div>
+
+            <div id="hostControls" style="display: none;">
+                <div class="input-group">
+                    <label for="gameMasterMode">あなたの役割：</label>
+                    <select id="gameMasterMode">
+                        <option value="player">プレイヤーとして参加</option>
+                        <option value="master">ゲームマスター（観戦のみ）</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="wolfCountLobby">ウルフの数：</label>
+                    <select id="wolfCountLobby">
+                        <option value="1">1人</option>
+                        <option value="2">2人</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="wordModeLobby">お題モード：</label>
+                    <select id="wordModeLobby">
+                        <option value="random">ランダム</option>
+                        <option value="custom">カスタム（ウルフが決める）</option>
+                    </select>
+                </div>
+                <button onclick="startGame()" id="startGameBtn" disabled>ゲーム開始（最低3人必要）</button>
+            </div>
+
+            <div id="playerWaiting" style="display: none;">
+                <p class="instruction">ホストがゲームを開始するまで待ってください...</p>
+            </div>
+
+            <button class="secondary-btn" onclick="leaveRoom()">ルームを退出</button>
+        </div>
+
+        <!-- Word Reveal Screen -->
+        <div id="wordScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">あなたのお題</h2>
+            <div class="word-card" id="myWordCard"></div>
+            <p class="instruction">このお題を覚えてください！話し合いで直接言わないように。</p>
+            <button id="readyBtn" onclick="markReady()">準備完了</button>
+            <div class="players-list" style="margin-top: 20px;">
+                <p style="color: #666; text-align: center;">準備完了: <span id="readyCount">0</span>/<span id="totalPlayers">0</span></p>
+            </div>
+        </div>
+
+        <!-- Game Master Observation Screen -->
+        <div id="gameMasterScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">🎮 ゲームマスター画面</h2>
+            <div class="game-info">
+                <p><strong>市民のお題：</strong> <span id="gmCitizenWord"></span></p>
+                <p><strong>ウルフのお題：</strong> <span id="gmWolfWord"></span></p>
+                <p><strong>ウルフ：</strong> <span id="gmWolfPlayers"></span></p>
+            </div>
+            <div class="players-list" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 15px; color: #333;">プレイヤー状態</h3>
+                <div id="gmPlayersList"></div>
+            </div>
+            <p class="instruction">ゲームの進行を観戦してください。あなたは投票に参加しません。</p>
+        </div>
+
+        <!-- Wolf Word Selection Screen -->
+        <div id="wolfWordSelectionScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">🐺 あなたはウルフです！</h2>
+            <p class="instruction">お題ペアを決めてください。他のプレイヤーは待っています。</p>
+            <div class="input-group">
+                <label for="wolfCitizenWord">市民のお題：</label>
+                <input type="text" id="wolfCitizenWord" placeholder="例：コーヒー">
+            </div>
+            <div class="input-group">
+                <label for="wolfWolfWord">ウルフのお題（あなた）：</label>
+                <input type="text" id="wolfWolfWord" placeholder="例：紅茶">
+            </div>
+            <p class="instruction" style="color: #f5576c; font-weight: bold;">⚠️ 似ているけど違うお題を選びましょう！</p>
+            <button onclick="submitWolfWords()">お題を決定</button>
+        </div>
+
+        <!-- Discussion Screen -->
+        <div id="discussionScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">話し合いタイム！</h2>
+            <p class="instruction">
+                お題について話し合いましょう。直接言わないように！
+                <br>誰が違うお題を持っているか見つけよう！
+            </p>
+            <div class="timer" id="timer">3:00</div>
+            <div id="timerControls"></div>
+            <button class="secondary-btn" onclick="goToVoting()">投票へ</button>
+        </div>
+
+        <!-- Voting Screen -->
+        <div id="votingScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">誰がウルフ？</h2>
+            <p class="instruction">ウルフだと思うプレイヤーに投票してください！</p>
+            <div class="voting-grid" id="votingGrid"></div>
+            <div id="voteStatus" class="game-info" style="margin-top: 20px;">
+                <p style="text-align: center;">投票済み: <span id="votedCount">0</span>/<span id="totalVoters">0</span></p>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">ゲーム結果</h2>
+            <div class="game-info">
+                <p><strong>市民のお題：</strong> <span id="citizenWordResult"></span></p>
+                <p><strong>ウルフのお題：</strong> <span id="wolfWordResult"></span></p>
+                <p><strong>ウルフは：</strong> <span id="wolfPlayersResult"></span></p>
+                <p><strong>最多票：</strong> <span id="votedPlayerResult"></span></p>
+            </div>
+            <div id="voteBreakdown" class="game-info"></div>
+            <div class="winner" id="winnerText"></div>
+            <div id="hostResultControls" style="display: none;">
+                <button onclick="backToLobby()">🔄 ロビーに戻る</button>
+            </div>
+            <button class="secondary-btn" onclick="leaveRoom()">ルームを退出</button>
+        </div>
+
+        <!-- Wolf Guess Screen -->
+        <div id="wolfGuessScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">🐺 ウルフの逆転チャンス！</h2>
+            <div class="game-info">
+                <p style="text-align: center; font-size: 1.1em; color: #f5576c; font-weight: bold;">
+                    ウルフが見つかりました！<br>
+                    しかし、市民のお題を当てれば逆転勝利！
+                </p>
+            </div>
+            <div id="wolfGuessContent"></div>
+            <div id="wolfGuessWaiting" style="display: none;">
+                <p class="instruction">ウルフが市民のお題を推理中...</p>
+            </div>
+        </div>
+
+        <!-- Final Results Screen -->
+        <div id="finalResultsScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">最終結果</h2>
+            <div class="game-info">
+                <p><strong>市民のお題：</strong> <span id="finalCitizenWord"></span></p>
+                <p><strong>ウルフのお題：</strong> <span id="finalWolfWord"></span></p>
+                <p><strong>ウルフは：</strong> <span id="finalWolfPlayers"></span></p>
+                <p><strong>最多票：</strong> <span id="finalVotedPlayer"></span></p>
+                <p id="wolfGuessResult"></p>
+            </div>
+            <div id="finalVoteBreakdown" class="game-info"></div>
+            <div class="winner" id="finalWinnerText"></div>
+            <div id="hostFinalControls" style="display: none;">
+                <button onclick="backToLobby()">🔄 ロビーに戻る</button>
+            </div>
+            <button class="secondary-btn" onclick="leaveRoom()">ルームを退出</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // ⚠️ IMPORTANT: Replace with your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const wordPairs = [
+            ['コーヒー', '紅茶'],
+            ['犬', '猫'],
+            ['ピザ', 'ハンバーガー'],
+            ['夏', '冬'],
+            ['映画', 'ドラマ'],
+            ['本', '雑誌'],
+            ['車', 'バイク'],
+            ['りんご', 'みかん'],
+            ['サッカー', 'バスケ'],
+            ['ギター', 'ピアノ'],
+            ['海', '山'],
+            ['朝食', '夕食'],
+            ['ペン', '鉛筆'],
+            ['メール', '手紙'],
+            ['ノートパソコン', 'デスクトップ'],
+            ['スープ', 'サラダ'],
+            ['川', '湖'],
+            ['太陽', '月'],
+            ['電車', 'バス'],
+            ['甘い', 'しょっぱい'],
+            ['カレー', 'ラーメン'],
+            ['野球', 'サッカー'],
+            ['春', '秋'],
+            ['医者', '看護師'],
+            ['遊園地', '水族館']
+        ];
+
+        let currentRoom = null;
+        let currentPlayer = null;
+        let isHost = false;
+        let isGameMaster = false;
+        let timerInterval = null;
+        let roomListener = null;
+
+        function showTab(tab) {
+            const tabs = ['create', 'join'];
+            tabs.forEach(t => {
+                document.getElementById(t + 'Tab').style.display = t === tab ? 'block' : 'none';
+                document.querySelector(`button[onclick="showTab('${t}')"]`).classList.toggle('active', t === tab);
+            });
+        }
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let code = '';
+            for (let i = 0; i < 4; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        async function createRoom() {
+            const name = document.getElementById('hostName').value.trim();
+            if (!name) {
+                alert('名前を入力してください！');
+                return;
+            }
+
+            const roomCode = generateRoomCode();
+            currentRoom = roomCode;
+            currentPlayer = {
+                id: Date.now().toString(),
+                name: name,
+                isHost: true
+            };
+            isHost = true;
+
+            try {
+                await database.ref(`rooms/${roomCode}`).set({
+                    host: currentPlayer.id,
+                    status: 'lobby',
+                    players: {
+                        [currentPlayer.id]: currentPlayer
+                    },
+                    settings: {
+                        wolfCount: 1,
+                        wordMode: 'random'
+                    },
+                    createdAt: Date.now()
+                });
+
+                joinLobby(roomCode);
+            } catch (error) {
+                alert('ルーム作成に失敗しました: ' + error.message);
+            }
+        }
+
+        async function joinRoom() {
+            const name = document.getElementById('playerName').value.trim();
+            const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
+
+            if (!name || !roomCode) {
+                alert('名前とルームコードを入力してください！');
+                return;
+            }
+
+            try {
+                const roomSnapshot = await database.ref(`rooms/${roomCode}`).once('value');
+                if (!roomSnapshot.exists()) {
+                    alert('ルームが見つかりません！');
+                    return;
+                }
+
+                const roomData = roomSnapshot.val();
+                if (roomData.status !== 'lobby') {
+                    alert('ゲームが既に開始されています！');
+                    return;
+                }
+
+                currentRoom = roomCode;
+                currentPlayer = {
+                    id: Date.now().toString(),
+                    name: name,
+                    isHost: false
+                };
+                isHost = false;
+
+                await database.ref(`rooms/${roomCode}/players/${currentPlayer.id}`).set(currentPlayer);
+                joinLobby(roomCode);
+            } catch (error) {
+                alert('参加に失敗しました: ' + error.message);
+            }
+        }
+
+        function joinLobby(roomCode) {
+            document.getElementById('displayRoomCode').textContent = roomCode;
+            document.getElementById('hostControls').style.display = isHost ? 'block' : 'none';
+            document.getElementById('playerWaiting').style.display = isHost ? 'none' : 'block';
+            
+            showScreen('lobbyScreen');
+            listenToRoom(roomCode);
+        }
+
+        function listenToRoom(roomCode) {
+            if (roomListener) {
+                roomListener.off();
+            }
+
+            roomListener = database.ref(`rooms/${roomCode}`);
+            
+            roomListener.on('value', (snapshot) => {
+                const room = snapshot.val();
+                if (!room) {
+                    alert('ルームが削除されました');
+                    location.reload();
+                    return;
+                }
+
+                updateLobby(room);
+
+                // Handle game state changes
+                if (room.status === 'wolf-selecting' && document.getElementById('wolfWordSelectionScreen').style.display !== 'block') {
+                    showWolfSelectionScreen(room);
+                } else if (room.status === 'words' && document.getElementById('wordScreen').style.display !== 'block') {
+                    showWordScreen(room);
+                } else if (room.status === 'discussion' && document.getElementById('discussionScreen').style.display !== 'block') {
+                    showDiscussionScreen(room);
+                } else if (room.status === 'voting' && document.getElementById('votingScreen').style.display !== 'block') {
+                    showVotingScreen(room);
+                } else if (room.status === 'results' && document.getElementById('resultsScreen').style.display !== 'block') {
+                    showResultsScreen(room);
+                } else if (room.status === 'wolf-guess' && document.getElementById('wolfGuessScreen').style.display !== 'block') {
+                    showWolfGuessScreen(room);
+                } else if (room.status === 'final-results' && document.getElementById('finalResultsScreen').style.display !== 'block') {
+                    showFinalResultsScreen(room);
+                } else if (room.status === 'lobby' && document.getElementById('lobbyScreen').style.display !== 'block') {
+                    showScreen('lobbyScreen');
+                }
+
+                // Update voting status
+                if (room.status === 'voting' && room.votes) {
+                    updateVotingStatus(room);
+                }
+            });
+
+            // Clean up on disconnect
+            database.ref(`rooms/${roomCode}/players/${currentPlayer.id}`).onDisconnect().remove();
+        }
+
+        function updateLobby(room) {
+            const players = room.players || {};
+            const playerCount = Object.keys(players).length;
+            
+            document.getElementById('playerCount').textContent = playerCount;
+            
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = '';
+            
+            Object.values(players).forEach(player => {
+                const div = document.createElement('div');
+                div.className = 'player-item';
+                div.innerHTML = `
+                    <span class="player-name">${player.name}</span>
+                    ${player.isHost ? '<span class="host-badge">ホスト</span>' : ''}
+                    ${player.isGameMaster ? '<span class="host-badge" style="background: #f5576c;">GM</span>' : ''}
+                `;
+                playersList.appendChild(div);
+            });
+
+            if (isHost) {
+                // Count actual players (excluding game master if selected)
+                const gameMasterMode = document.getElementById('gameMasterMode').value;
+                const actualPlayers = gameMasterMode === 'master' ? playerCount - 1 : playerCount;
+                document.getElementById('startGameBtn').disabled = actualPlayers < 3;
+            }
+        }
+
+        async function startGame() {
+            if (!isHost) return;
+
+            const wolfCount = parseInt(document.getElementById('wolfCountLobby').value);
+            const wordMode = document.getElementById('wordModeLobby').value;
+            const gameMasterMode = document.getElementById('gameMasterMode').value;
+            
+            // Mark host as game master if selected
+            if (gameMasterMode === 'master') {
+                await database.ref(`rooms/${currentRoom}/players/${currentPlayer.id}/isGameMaster`).set(true);
+                isGameMaster = true;
+            }
+            
+            const roomSnapshot = await database.ref(`rooms/${currentRoom}`).once('value');
+            const room = roomSnapshot.val();
+            
+            // Get player IDs, excluding game master
+            const allPlayerIds = Object.keys(room.players);
+            const playerIds = allPlayerIds.filter(id => !room.players[id].isGameMaster);
+            
+            if (playerIds.length < 3) {
+                alert('プレイヤーが3人以上必要です！');
+                return;
+            }
+            
+            // Randomly select wolves from actual players only
+            const wolves = [];
+            while (wolves.length < wolfCount) {
+                const randomId = playerIds[Math.floor(Math.random() * playerIds.length)];
+                if (!wolves.includes(randomId)) {
+                    wolves.push(randomId);
+                }
+            }
+
+            if (wordMode === 'custom') {
+                // Custom mode: First wolf will choose words
+                await database.ref(`rooms/${currentRoom}`).update({
+                    status: 'wolf-selecting',
+                    gameData: {
+                        wolves,
+                        wordSelector: wolves[0], // First wolf selects words
+                        wordMode: 'custom'
+                    }
+                });
+            } else {
+                // Random mode: Generate words immediately
+                const pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
+                let citizenWord, wolfWord;
+                
+                if (Math.random() > 0.5) {
+                    citizenWord = pair[0];
+                    wolfWord = pair[1];
+                } else {
+                    citizenWord = pair[1];
+                    wolfWord = pair[0];
+                }
+
+                // Assign words to players (excluding game master)
+                const playerWords = {};
+                playerIds.forEach(playerId => {
+                    playerWords[playerId] = {
+                        word: wolves.includes(playerId) ? wolfWord : citizenWord,
+                        isWolf: wolves.includes(playerId),
+                        ready: false
+                    };
+                });
+
+                await database.ref(`rooms/${currentRoom}`).update({
+                    status: 'words',
+                    gameData: {
+                        citizenWord,
+                        wolfWord,
+                        wolves,
+                        playerWords,
+                        timerStarted: false
+                    }
+                });
+            }
+        }
+
+        function showWordScreen(room) {
+            // Check if current player is game master
+            if (room.players[currentPlayer.id]?.isGameMaster) {
+                showGameMasterScreen(room);
+                return;
+            }
+
+            const myWord = room.gameData.playerWords[currentPlayer.id];
+            const wordCard = document.getElementById('myWordCard');
+            
+            wordCard.textContent = myWord.word;
+            wordCard.className = myWord.isWolf ? 'word-card wolf-card' : 'word-card';
+            
+            // Reset heading and button visibility
+            const heading = document.querySelector('#wordScreen h2');
+            heading.textContent = 'あなたのお題';
+            const readyBtn = document.getElementById('readyBtn');
+            readyBtn.style.display = 'block';
+            readyBtn.disabled = false;
+            readyBtn.textContent = '準備完了';
+            
+            document.getElementById('totalPlayers').textContent = Object.keys(room.gameData.playerWords).length;
+            updateReadyCount(room);
+            
+            showScreen('wordScreen');
+        }
+
+        function showGameMasterScreen(room) {
+            const gameData = room.gameData;
+            
+            document.getElementById('gmCitizenWord').textContent = gameData.citizenWord;
+            document.getElementById('gmWolfWord').textContent = gameData.wolfWord;
+            
+            const wolfNames = gameData.wolves.map(id => room.players[id].name).join(', ');
+            document.getElementById('gmWolfPlayers').textContent = wolfNames;
+            
+            // Show player status
+            const gmPlayersList = document.getElementById('gmPlayersList');
+            gmPlayersList.innerHTML = '';
+            
+            Object.entries(gameData.playerWords).forEach(([playerId, data]) => {
+                const player = room.players[playerId];
+                const div = document.createElement('div');
+                div.className = 'player-item';
+                div.innerHTML = `
+                    <span class="player-name">${player.name}</span>
+                    <span style="color: ${data.isWolf ? '#00f2fe' : '#43e97b'}; font-weight: bold;">
+                        ${data.isWolf ? '🐺 ウルフ' : '👤 市民'} - ${data.word}
+                    </span>
+                `;
+                gmPlayersList.appendChild(div);
+            });
+            
+            showScreen('gameMasterScreen');
+        }
+
+        function showWolfSelectionScreen(room) {
+            // Check if current player is game master - they just observe
+            if (room.players[currentPlayer.id]?.isGameMaster) {
+                showScreen('gameMasterScreen');
+                const heading = document.querySelector('#gameMasterScreen h2');
+                heading.textContent = '🎮 ゲームマスター - ウルフがお題選択中';
+                document.getElementById('gmCitizenWord').textContent = '選択中...';
+                document.getElementById('gmWolfWord').textContent = '選択中...';
+                document.getElementById('gmWolfPlayers').textContent = room.gameData.wolves.map(id => room.players[id].name).join(', ');
+                return;
+            }
+
+            const isWordSelector = currentPlayer.id === room.gameData.wordSelector;
+            
+            if (isWordSelector) {
+                // This player is the wolf who selects words
+                showScreen('wolfWordSelectionScreen');
+            } else {
+                // Other players wait
+                showScreen('wordScreen');
+                const wordCard = document.getElementById('myWordCard');
+                wordCard.textContent = '待機中...';
+                wordCard.className = 'word-card';
+                document.getElementById('myWordCard').parentElement.querySelector('h2').textContent = 
+                    'ウルフがお題を選んでいます';
+                document.getElementById('readyBtn').style.display = 'none';
+            }
+        }
+
+        async function submitWolfWords() {
+            const citizenWord = document.getElementById('wolfCitizenWord').value.trim();
+            const wolfWord = document.getElementById('wolfWolfWord').value.trim();
+            
+            if (!citizenWord || !wolfWord) {
+                alert('お題を両方入力してください！');
+                return;
+            }
+
+            const roomSnapshot = await database.ref(`rooms/${currentRoom}`).once('value');
+            const room = roomSnapshot.val();
+            const allPlayerIds = Object.keys(room.players);
+            const wolves = room.gameData.wolves;
+
+            // Assign words to players (excluding game master)
+            const playerWords = {};
+            allPlayerIds.forEach(playerId => {
+                if (!room.players[playerId].isGameMaster) {
+                    playerWords[playerId] = {
+                        word: wolves.includes(playerId) ? wolfWord : citizenWord,
+                        isWolf: wolves.includes(playerId),
+                        ready: false
+                    };
+                }
+            });
+
+            await database.ref(`rooms/${currentRoom}`).update({
+                status: 'words',
+                gameData: {
+                    citizenWord,
+                    wolfWord,
+                    wolves,
+                    playerWords,
+                    timerStarted: false
+                }
+            });
+        }
+
+        async function markReady() {
+            await database.ref(`rooms/${currentRoom}/gameData/playerWords/${currentPlayer.id}/ready`).set(true);
+            document.getElementById('readyBtn').disabled = true;
+            document.getElementById('readyBtn').textContent = '準備完了！';
+        }
+
+        function updateReadyCount(room) {
+            const playerWords = room.gameData.playerWords;
+            const readyCount = Object.values(playerWords).filter(p => p.ready).length;
+            const totalCount = Object.keys(playerWords).length;
+            
+            document.getElementById('readyCount').textContent = readyCount;
+            
+            // Auto-start discussion when all ready
+            if (isHost && readyCount === totalCount && room.status === 'words') {
+                database.ref(`rooms/${currentRoom}/status`).set('discussion');
+            }
+        }
+
+        function showDiscussionScreen(room) {
+            showScreen('discussionScreen');
+            
+            if (isHost && !room.gameData.timerStarted) {
+                const controls = document.getElementById('timerControls');
+                controls.innerHTML = '<button onclick="startDiscussionTimer()">⏱️ タイマースタート（3分）</button>';
+            }
+        }
+
+        async function startDiscussionTimer() {
+            if (!isHost) return;
+            
+            await database.ref(`rooms/${currentRoom}/gameData`).update({
+                timerStarted: true,
+                timerEnd: Date.now() + 180000 // 3 minutes
+            });
+
+            runTimer();
+        }
+
+        function runTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(async () => {
+                const snapshot = await database.ref(`rooms/${currentRoom}/gameData/timerEnd`).once('value');
+                const timerEnd = snapshot.val();
+                
+                if (!timerEnd) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                
+                const remaining = Math.max(0, timerEnd - Date.now());
+                const seconds = Math.floor(remaining / 1000);
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                
+                document.getElementById('timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    if (isHost) {
+                        goToVoting();
+                    }
+                }
+            }, 100);
+        }
+
+        async function goToVoting() {
+            if (!isHost) return;
+            await database.ref(`rooms/${currentRoom}/status`).set('voting');
+        }
+
+        function showVotingScreen(room) {
+            // Game master just observes
+            if (room.players[currentPlayer.id]?.isGameMaster) {
+                showGameMasterScreen(room);
+                const heading = document.querySelector('#gameMasterScreen h2');
+                heading.textContent = '🎮 ゲームマスター - 投票中';
+                return;
+            }
+
+            const grid = document.getElementById('votingGrid');
+            grid.innerHTML = '';
+            
+            Object.entries(room.players).forEach(([id, player]) => {
+                // Don't show game master as voting option
+                if (player.isGameMaster) return;
+
+                const btn = document.createElement('button');
+                btn.className = 'vote-btn';
+                btn.textContent = player.name;
+                btn.onclick = () => vote(id);
+                
+                if (room.votes && room.votes[currentPlayer.id]) {
+                    btn.disabled = true;
+                    if (room.votes[currentPlayer.id] === id) {
+                        btn.classList.add('voted');
+                    }
+                }
+                
+                grid.appendChild(btn);
+            });
+            
+            const actualPlayers = Object.values(room.players).filter(p => !p.isGameMaster).length;
+            document.getElementById('totalVoters').textContent = actualPlayers;
+            updateVotingStatus(room);
+            
+            showScreen('votingScreen');
+        }
+
+        async function vote(targetId) {
+            await database.ref(`rooms/${currentRoom}/votes/${currentPlayer.id}`).set(targetId);
+        }
+
+        function updateVotingStatus(room) {
+            const votes = room.votes || {};
+            const voteCount = Object.keys(votes).length;
+            const actualPlayers = Object.values(room.players).filter(p => !p.isGameMaster).length;
+            
+            document.getElementById('votedCount').textContent = voteCount;
+            
+            // Auto-show results when all actual players voted
+            if (isHost && voteCount === actualPlayers && room.status === 'voting') {
+                setTimeout(() => {
+                    calculateResults(room);
+                }, 1000);
+            }
+        }
+
+        async function calculateResults(room) {
+            const votes = room.votes || {};
+            const voteCounts = {};
+            
+            Object.values(votes).forEach(targetId => {
+                voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+            });
+            
+            let maxVotes = 0;
+            let mostVoted = null;
+            
+            Object.entries(voteCounts).forEach(([playerId, count]) => {
+                if (count > maxVotes) {
+                    maxVotes = count;
+                    mostVoted = playerId;
+                }
+            });
+            
+            const wolfCaught = room.gameData.wolves.includes(mostVoted);
+            
+            if (wolfCaught) {
+                // Wolf was caught - give them a chance to guess
+                await database.ref(`rooms/${currentRoom}`).update({
+                    status: 'wolf-guess',
+                    results: {
+                        mostVoted,
+                        voteCounts,
+                        wolfCaught: true
+                    }
+                });
+            } else {
+                // Wolf survived - game over, wolves win
+                await database.ref(`rooms/${currentRoom}`).update({
+                    status: 'final-results',
+                    results: {
+                        mostVoted,
+                        voteCounts,
+                        wolfCaught: false,
+                        wolfGuessed: false,
+                        finalWinner: 'wolves'
+                    }
+                });
+            }
+        }
+
+        function showWolfGuessScreen(room) {
+            const isVotedWolf = currentPlayer.id === room.results.mostVoted;
+            const content = document.getElementById('wolfGuessContent');
+            
+            if (isVotedWolf) {
+                // This player is the caught wolf - let them guess
+                content.innerHTML = `
+                    <div class="input-group">
+                        <label for="wolfGuessInput">市民のお題を推理してください：</label>
+                        <input type="text" id="wolfGuessInput" placeholder="お題を入力">
+                    </div>
+                    <button onclick="submitWolfGuess()">回答する</button>
+                `;
+                content.style.display = 'block';
+                document.getElementById('wolfGuessWaiting').style.display = 'none';
+            } else {
+                // Other players wait
+                content.style.display = 'none';
+                document.getElementById('wolfGuessWaiting').style.display = 'block';
+            }
+            
+            showScreen('wolfGuessScreen');
+        }
+
+        async function submitWolfGuess() {
+            const guess = document.getElementById('wolfGuessInput').value.trim();
+            
+            if (!guess) {
+                alert('お題を入力してください！');
+                return;
+            }
+
+            const roomSnapshot = await database.ref(`rooms/${currentRoom}`).once('value');
+            const room = roomSnapshot.val();
+            const citizenWord = room.gameData.citizenWord;
+            
+            // Check if guess is correct (case insensitive, trimmed)
+            const isCorrect = guess.toLowerCase() === citizenWord.toLowerCase();
+            
+            await database.ref(`rooms/${currentRoom}`).update({
+                status: 'final-results',
+                'results/wolfGuess': guess,
+                'results/wolfGuessed': isCorrect,
+                'results/finalWinner': isCorrect ? 'wolves' : 'citizens'
+            });
+        }
+
+        function showFinalResultsScreen(room) {
+            const gameData = room.gameData;
+            const results = room.results;
+            
+            document.getElementById('finalCitizenWord').textContent = gameData.citizenWord;
+            document.getElementById('finalWolfWord').textContent = gameData.wolfWord;
+            
+            const wolfNames = gameData.wolves.map(id => room.players[id].name).join(', ');
+            document.getElementById('finalWolfPlayers').textContent = wolfNames;
+            
+            const votedPlayerName = results.mostVoted ? room.players[results.mostVoted].name : 'なし';
+            document.getElementById('finalVotedPlayer').textContent = votedPlayerName;
+            
+            // Show wolf guess result if applicable
+            const guessResult = document.getElementById('wolfGuessResult');
+            if (results.wolfCaught && results.wolfGuess) {
+                guessResult.innerHTML = `<strong>ウルフの推理：</strong> "${results.wolfGuess}" ${results.wolfGuessed ? '✓ 正解！' : '✗ 不正解'}`;
+            } else {
+                guessResult.innerHTML = '';
+            }
+            
+            // Vote breakdown
+            const breakdown = document.getElementById('finalVoteBreakdown');
+            breakdown.innerHTML = '<p><strong>投票結果：</strong></p>';
+            Object.entries(results.voteCounts).forEach(([playerId, count]) => {
+                const p = document.createElement('p');
+                p.textContent = `${room.players[playerId].name}: ${count}票`;
+                breakdown.appendChild(p);
+            });
+            
+            // Determine winner message
+            let winnerText = '';
+            if (results.finalWinner === 'wolves') {
+                if (results.wolfGuessed) {
+                    winnerText = '🐺 ウルフの逆転勝利！市民のお題を当てました！';
+                } else {
+                    winnerText = '🐺 ウルフの勝ち！生き残りました！';
+                }
+            } else {
+                if (results.wolfCaught && !results.wolfGuessed) {
+                    winnerText = '🎉 市民の勝ち！ウルフを見つけて、推理も防ぎました！';
+                } else {
+                    winnerText = '🎉 市民の勝ち！';
+                }
+            }
+            
+            document.getElementById('finalWinnerText').textContent = winnerText;
+            document.getElementById('hostFinalControls').style.display = isHost ? 'block' : 'none';
+            
+            showScreen('finalResultsScreen');
+        }
+
+        function showResultsScreen(room) {
+            // This function is now only called for immediate results (shouldn't happen anymore)
+            // Redirect to appropriate screen based on wolf caught status
+            if (room.results.wolfCaught) {
+                showWolfGuessScreen(room);
+            } else {
+                showFinalResultsScreen(room);
+            }
+        }
+
+        async function backToLobby() {
+            if (!isHost) return;
+            
+            await database.ref(`rooms/${currentRoom}`).update({
+                status: 'lobby',
+                gameData: null,
+                votes: null,
+                results: null
+            });
+        }
+
+        async function leaveRoom() {
+            if (currentRoom && currentPlayer) {
+                await database.ref(`rooms/${currentRoom}/players/${currentPlayer.id}`).remove();
+                
+                if (isHost) {
+                    // Delete room if host leaves
+                    await database.ref(`rooms/${currentRoom}`).remove();
+                }
+            }
+            
+            if (roomListener) {
+                roomListener.off();
+            }
+            
+            location.reload();
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (currentRoom && currentPlayer) {
+                database.ref(`rooms/${currentRoom}/players/${currentPlayer.id}`).remove();
+            }
+        });
+    </script>
+</body>
+</html>
