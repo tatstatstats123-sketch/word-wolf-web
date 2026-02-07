@@ -305,7 +305,7 @@
             <div id="hostControls" style="display: none;">
                 <div class="input-group">
                     <label for="gameMasterSelect">ゲームマスター選択：</label>
-                    <select id="gameMasterSelect">
+                    <select id="gameMasterSelect" onchange="updateStartButton()">
                         <option value="">選択してください</option>
                     </select>
                 </div>
@@ -331,7 +331,7 @@
                         <option value="300">5分</option>
                     </select>
                 </div>
-                <button onclick="startGame()" id="startGameBtn" disabled>ゲーム開始（最低3人必要）</button>
+                <button onclick="startGame()" id="startGameBtn" disabled>ゲーム開始（GM + 3人必要）</button>
             </div>
 
             <div id="playerWaiting" style="display: none;">
@@ -732,6 +732,8 @@
                     if (id === currentGM) option.selected = true;
                     gmSelect.appendChild(option);
                 });
+                
+                updateStartButton();
             }
             
             Object.values(players).forEach(player => {
@@ -744,13 +746,21 @@
                 `;
                 playersList.appendChild(div);
             });
+        }
 
-            if (isHost) {
-                // Need at least 3 players + 1 GM = 4 total
+        function updateStartButton() {
+            if (!isHost) return;
+            
+            const roomSnapshot = database.ref(`rooms/${currentRoom}`).once('value');
+            roomSnapshot.then(snapshot => {
+                const room = snapshot.val();
+                const players = room.players || {};
+                const playerCount = Object.keys(players).length;
+                
                 const gmSelected = document.getElementById('gameMasterSelect').value;
                 const actualPlayers = gmSelected ? playerCount - 1 : playerCount;
                 document.getElementById('startGameBtn').disabled = !gmSelected || actualPlayers < 3;
-            }
+            });
         }
 
         async function startGame() {
