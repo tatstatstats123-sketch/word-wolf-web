@@ -901,10 +901,16 @@
 
         function showDiscussionScreen(room) {
             showScreen('discussionScreen');
-            
+        
+            // 🔽 追加：timerが既に始まってたら全員で回す
+            if (room.gameData.timerStarted) {
+                runTimer();
+            }
+        
             if (isHost && !room.gameData.timerStarted) {
                 const controls = document.getElementById('timerControls');
-                controls.innerHTML = '<button onclick="startDiscussionTimer()">⏱️ タイマースタート（3分）</button>';
+                controls.innerHTML =
+                    '<button onclick="startDiscussionTimer()">⏱️ タイマースタート（3分）</button>';
             }
         }
 
