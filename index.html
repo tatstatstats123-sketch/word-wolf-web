@@ -681,14 +681,18 @@
 
                 updateLobby(room);
 
-                // Handle game state changes - force show the current state
+                // Handle game state changes - use status to determine which screen to show
                 const currentScreen = document.querySelector('.screen.active');
                 const currentScreenId = currentScreen ? currentScreen.id : null;
                 
-                if (room.status === 'gm-selecting' && currentScreenId !== 'wolfWordSelectionScreen') {
+                // For 'words' status, check if we have playerWords to distinguish from waiting state
+                if (room.status === 'words' && room.gameData?.playerWords) {
+                    // Only show word screen if we have actual words assigned
+                    if (currentScreenId !== 'wordScreen' && currentScreenId !== 'gameMasterScreen') {
+                        showWordScreen(room);
+                    }
+                } else if (room.status === 'gm-selecting' && currentScreenId !== 'wolfWordSelectionScreen' && currentScreenId !== 'wordScreen') {
                     showGMSelectionScreen(room);
-                } else if (room.status === 'words' && currentScreenId !== 'wordScreen' && currentScreenId !== 'gameMasterScreen') {
-                    showWordScreen(room);
                 } else if (room.status === 'discussion' && currentScreenId !== 'discussionScreen' && currentScreenId !== 'gameMasterScreen') {
                     showDiscussionScreen(room);
                 } else if (room.status === 'voting' && currentScreenId !== 'votingScreen' && currentScreenId !== 'gameMasterScreen') {
@@ -951,11 +955,13 @@
             const room = roomSnapshot.val();
             const allPlayerIds = Object.keys(room.players);
             const wolves = room.gameData.wolves;
+            const gmId = room.gameData.gameMasterId;
+            const timerDuration = room.gameData.timerDuration;
 
             // Assign words to players (excluding game master)
             const playerWords = {};
             allPlayerIds.forEach(playerId => {
-                if (!room.players[playerId].isGameMaster) {
+                if (playerId !== gmId) {
                     playerWords[playerId] = {
                         word: wolves.includes(playerId) ? wolfWord : citizenWord,
                         isWolf: wolves.includes(playerId),
@@ -970,8 +976,10 @@
                     citizenWord,
                     wolfWord,
                     wolves,
+                    gameMasterId: gmId,
                     playerWords,
-                    timerStarted: false
+                    timerStarted: false,
+                    timerDuration
                 }
             });
         }
