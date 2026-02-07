@@ -687,10 +687,7 @@
                 
                 // For 'words' status, check if we have playerWords to distinguish from waiting state
                 if (room.status === 'words' && room.gameData?.playerWords) {
-                    // Only show word screen if we have actual words assigned
-                    if (currentScreenId !== 'wordScreen' && currentScreenId !== 'gameMasterScreen') {
-                        showWordScreen(room);
-                    }
+                    showWordScreen(room);
                 } else if (room.status === 'gm-selecting' && currentScreenId !== 'wolfWordSelectionScreen' && currentScreenId !== 'wordScreen') {
                     showGMSelectionScreen(room);
                 } else if (room.status === 'discussion' && currentScreenId !== 'discussionScreen' && currentScreenId !== 'gameMasterScreen') {
