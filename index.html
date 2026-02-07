@@ -638,8 +638,11 @@
                             isHost = playerData.isHost;
                             isGameMaster = roomData.players[playerData.id].isGameMaster || false;
                             
-                            // Rejoin the room
-                            joinLobby(savedRoom);
+                            // Don't show home screen - go straight to current game state
+                            document.getElementById('homeScreen').style.display = 'none';
+                            
+                            // Start listening to room which will handle showing correct screen
+                            listenToRoom(savedRoom);
                         }
                     }
                 } catch (error) {
@@ -670,33 +673,41 @@
                 const room = snapshot.val();
                 if (!room) {
                     alert('ルームが削除されました');
+                    localStorage.removeItem('wordwolf_room');
+                    localStorage.removeItem('wordwolf_player');
                     location.reload();
                     return;
                 }
 
                 updateLobby(room);
 
-                // Handle game state changes
-                if (room.status === 'gm-selecting' && document.getElementById('wolfWordSelectionScreen').style.display !== 'block') {
+                // Handle game state changes - force show the current state
+                const currentScreen = document.querySelector('.screen.active');
+                const currentScreenId = currentScreen ? currentScreen.id : null;
+                
+                if (room.status === 'gm-selecting' && currentScreenId !== 'wolfWordSelectionScreen') {
                     showGMSelectionScreen(room);
-                } else if (room.status === 'words' && document.getElementById('wordScreen').style.display !== 'block') {
+                } else if (room.status === 'words' && currentScreenId !== 'wordScreen' && currentScreenId !== 'gameMasterScreen') {
                     showWordScreen(room);
-                } else if (room.status === 'discussion' && document.getElementById('discussionScreen').style.display !== 'block') {
+                } else if (room.status === 'discussion' && currentScreenId !== 'discussionScreen' && currentScreenId !== 'gameMasterScreen') {
                     showDiscussionScreen(room);
-                } else if (room.status === 'voting' && document.getElementById('votingScreen').style.display !== 'block') {
+                } else if (room.status === 'voting' && currentScreenId !== 'votingScreen' && currentScreenId !== 'gameMasterScreen') {
                     showVotingScreen(room);
-                } else if (room.status === 'results' && document.getElementById('resultsScreen').style.display !== 'block') {
+                } else if (room.status === 'results' && currentScreenId !== 'resultsScreen') {
                     showResultsScreen(room);
-                } else if (room.status === 'wolf-guess' && document.getElementById('wolfGuessScreen').style.display !== 'block') {
+                } else if (room.status === 'wolf-guess' && currentScreenId !== 'wolfGuessScreen') {
                     showWolfGuessScreen(room);
-                } else if (room.status === 'final-results' && document.getElementById('finalResultsScreen').style.display !== 'block') {
+                } else if (room.status === 'final-results' && currentScreenId !== 'finalResultsScreen') {
                     showFinalResultsScreen(room);
-                } else if (room.status === 'lobby' && document.getElementById('lobbyScreen').style.display !== 'block') {
+                } else if (room.status === 'lobby' && currentScreenId !== 'lobbyScreen') {
                     showScreen('lobbyScreen');
+                    document.getElementById('displayRoomCode').textContent = roomCode;
+                    document.getElementById('hostControls').style.display = isHost ? 'block' : 'none';
+                    document.getElementById('playerWaiting').style.display = isHost ? 'none' : 'block';
                 }
 
-                // Update discussion timer for everyone if it exists
-                if (room.status === 'discussion' && room.gameData?.timerEnd) {
+                // Update discussion timer for everyone if it exists and timer just started
+                if (room.status === 'discussion' && room.gameData?.timerEnd && room.gameData?.timerStarted) {
                     updateTimerDisplay(room.gameData.timerEnd);
                 }
 
@@ -1000,11 +1011,6 @@
             document.getElementById('gmTimerControls').style.display = 'none';
             
             showScreen('discussionScreen');
-            
-            // Start listening for timer if it exists
-            if (room.gameData?.timerEnd) {
-                updateTimerDisplay(room.gameData.timerEnd);
-            }
         }
 
         function showGameMasterDiscussionScreen(room) {
@@ -1051,11 +1057,6 @@
             document.getElementById('gameMasterScreen').appendChild(controls);
             
             showScreen('gameMasterScreen');
-            
-            // Start listening for timer if it exists
-            if (room.gameData?.timerEnd) {
-                updateTimerDisplay(room.gameData.timerEnd);
-            }
         }
 
         function updateTimerDisplay(timerEnd) {
