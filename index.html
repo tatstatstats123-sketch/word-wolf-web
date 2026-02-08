@@ -350,6 +350,7 @@
             <div class="players-list" style="margin-top: 20px;">
                 <p style="color: #666; text-align: center;">準備完了: <span id="readyCount">0</span>/<span id="totalPlayers">0</span></p>
             </div>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
 
         <!-- Game Master Observation Screen -->
@@ -377,6 +378,7 @@
                 <div id="gmPlayersList"></div>
             </div>
             <p class="instruction">ゲームの進行を観戦してください。あなたは投票に参加しません。</p>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
 
         <!-- GM Word Selection Screen -->
@@ -393,6 +395,7 @@
             </div>
             <p class="instruction" style="color: #f5576c; font-weight: bold;">⚠️ 似ているけど違うお題を選びましょう！</p>
             <button onclick="submitGMWords()">お題を決定</button>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 10px;">ルームを退出</button>
         </div>
 
         <!-- Discussion Screen -->
@@ -414,6 +417,7 @@
             <div id="playerTimerInfo" style="display: none;">
                 <p class="instruction">GMがタイマーを開始します...</p>
             </div>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
 
         <!-- Voting Screen -->
@@ -425,6 +429,7 @@
             <div id="voteStatus" class="game-info" style="margin-top: 20px;">
                 <p style="text-align: center;">投票済み: <span id="votedCount">0</span>/<span id="totalVoters">0</span></p>
             </div>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
 
         <!-- Results Screen -->
@@ -459,6 +464,7 @@
             <div id="wolfGuessWaiting" style="display: none;">
                 <p class="instruction">ウルフが市民のお題を推理中...</p>
             </div>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
 
         <!-- Wolf Waiting Screen (for non-wolves during guess phase) -->
@@ -470,12 +476,14 @@
                     結果をお待ちください。
                 </p>
             </div>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
 
         <!-- GM Review Screen -->
         <div id="gmReviewScreen" class="screen">
             <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">🎮 GMジャッジ</h2>
             <div id="gmReviewContent"></div>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
 
         <!-- Final Results Screen -->
