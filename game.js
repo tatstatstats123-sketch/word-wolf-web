@@ -442,8 +442,8 @@ function render(room){
       break;
     case 'voting': 
       if (isGM) {
-        show('gameMasterScreen');
-        updateGMScreen(room);
+        show('gmVotingScreen');
+        updateGMVotingScreen(room);
       } else {
         show('votingScreen');
         updateVotingScreen(room);
@@ -599,24 +599,52 @@ function updateVotingScreen(room) {
   const totalVoters = Object.keys(players).length - 1; // Exclude GM
   if (qs('votedCount')) qs('votedCount').textContent = votedCount;
   if (qs('totalVoters')) qs('totalVoters').textContent = totalVoters;
+}
+
+function updateGMVotingScreen(room) {
+  const players = room.players || {};
+  const votes = room.votes || {};
+  const gmId = room.gameData?.gameMasterId;
   
-  // Auto-advance when everyone has voted
-  if (votedCount === totalVoters && totalVoters > 0 && room.status === 'voting') {
-    // Only GM can tally votes to avoid duplicate tallying
-    if (room.gameData?.gameMasterId === playerId) {
-      // Check if we haven't already scheduled tallying
-      if (!window.voteTransitionScheduled) {
-        window.voteTransitionScheduled = true;
-        setTimeout(() => {
-          window.voteTransitionScheduled = false;
-          // Double-check status hasn't changed
-          database.ref(`rooms/${roomCode}/status`).once('value').then(snap => {
-            if (snap.val() === 'voting') {
-              tallyVotesAndAdvance();
-            }
-          });
-        }, 1000);
-      }
+  // Show game info
+  if (qs('gmVotingCitizenWord')) qs('gmVotingCitizenWord').textContent = room.gameData?.citizenWord || '';
+  if (qs('gmVotingWolfWord')) qs('gmVotingWolfWord').textContent = room.gameData?.wolfWord || '';
+  
+  const wolves = room.gameData?.wolves || [];
+  const wolfNames = wolves.map(id => players[id]?.name || id).join(', ');
+  if (qs('gmVotingWolfPlayers')) qs('gmVotingWolfPlayers').textContent = wolfNames;
+  
+  // Show voting status for each player
+  const gmVotingPlayersList = qs('gmVotingPlayersList');
+  if (gmVotingPlayersList) {
+    const playerIds = Object.keys(players).filter(id => id !== gmId);
+    gmVotingPlayersList.innerHTML = playerIds.map(pid => {
+      const hasVoted = votes[pid] !== undefined;
+      const votedFor = hasVoted ? players[votes[pid]]?.name : '';
+      return `
+        <div class="player-item">
+          <span class="player-name">${players[pid]?.name || pid}</span>
+          <span>${hasVoted ? `✓ 投票済み → ${votedFor}` : '待機中...'}</span>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  // Update vote counts
+  const votedCount = Object.keys(votes).length;
+  const totalVoters = Object.keys(players).length - 1; // Exclude GM
+  if (qs('gmVotedCount')) qs('gmVotedCount').textContent = votedCount;
+  if (qs('gmTotalVoters')) qs('gmTotalVoters').textContent = totalVoters;
+  
+  // Enable/disable tally button based on voting status
+  const gmTallyBtn = qs('gmTallyVotesBtn');
+  if (gmTallyBtn) {
+    if (votedCount === totalVoters && totalVoters > 0) {
+      gmTallyBtn.disabled = false;
+      gmTallyBtn.textContent = '全員投票完了 - 投票集計';
+    } else {
+      gmTallyBtn.disabled = true;
+      gmTallyBtn.textContent = `投票待ち (${votedCount}/${totalVoters})`;
     }
   }
 }
@@ -910,6 +938,7 @@ function syncVotingTimer(room){
   
   if(room.status!=='voting') {
     if(qs('voteTimer')) qs('voteTimer').textContent = '--:--';
+    if(qs('gmVoteTimer')) qs('gmVoteTimer').textContent = '--:--';
     return;
   }
   
@@ -923,6 +952,8 @@ function syncVotingTimer(room){
   votingInterval=setInterval(()=>{
     const e=Math.floor((Date.now()-start)/1000);
     const r=Math.max(0,60-e);
-    if(qs('voteTimer')) qs('voteTimer').textContent=`0:${String(r).padStart(2,'0')}`;
+    const txt = `0:${String(r).padStart(2,'0')}`;
+    if(qs('voteTimer')) qs('voteTimer').textContent = txt;
+    if(qs('gmVoteTimer')) qs('gmVoteTimer').textContent = txt;
   },500);
 }

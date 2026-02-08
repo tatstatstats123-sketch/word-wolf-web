@@ -438,6 +438,37 @@
             <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
 
+        <!-- GM Voting Observation Screen -->
+        <div id="gmVotingScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">🎮 投票観戦中</h2>
+            <div class="game-info">
+                <p><strong>市民のお題：</strong> <span id="gmVotingCitizenWord"></span></p>
+                <p><strong>ウルフのお題：</strong> <span id="gmVotingWolfWord"></span></p>
+                <p><strong>ウルフ：</strong> <span id="gmVotingWolfPlayers"></span></p>
+            </div>
+            
+            <div class="timer" id="gmVoteTimer" style="font-size: 2em; margin: 20px 0;">--:--</div>
+            
+            <div class="players-list" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 15px; color: #333;">投票状態</h3>
+                <div id="gmVotingPlayersList"></div>
+            </div>
+            
+            <div id="gmVotingStatus" class="game-info" style="margin-top: 20px;">
+                <p style="text-align: center; font-size: 1.2em;">
+                    投票済み: <span id="gmVotedCount">0</span>/<span id="gmTotalVoters">0</span>
+                </p>
+            </div>
+            
+            <!-- Manual tally button for GM -->
+            <button id="gmTallyVotesBtn" onclick="tallyVotesAndAdvance()" style="margin-top: 20px;">
+                投票集計 - 結果発表
+            </button>
+            
+            <p class="instruction">投票の進行を観戦してください。全員が投票したら集計できます。</p>
+            <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
+        </div>
+
         <!-- Results Screen -->
         <div id="resultsScreen" class="screen">
             <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">ゲーム結果</h2>
