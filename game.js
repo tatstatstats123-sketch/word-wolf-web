@@ -315,8 +315,11 @@ window.playAgain = function() {
 function attachRoomListener() {
   if (!roomCode) return;
   
+  console.log('[Listener] Attaching room listener for room:', roomCode);
+  
   database.ref(`rooms/${roomCode}`).on('value', snap=>{
     const room = snap.val();
+    console.log('[Listener] Room update received, status:', room?.status);
     
     // If room doesn't exist or player was removed, clear localStorage and go home
     if(!room || !room.players?.[playerId]) {
@@ -336,6 +339,7 @@ function attachRoomListener() {
       updateLobby(room);
     }
     
+    console.log('[Listener] Calling render for status:', room.status);
     render(room);
     syncDiscussionTimer(room);
     syncVotingTimer(room);
@@ -354,6 +358,11 @@ if (roomCode) {
 function updateLobby(room) {
   const players = room.players || {};
   const playerIds = Object.keys(players);
+  
+  // Update room code display
+  if (qs('displayRoomCode')) {
+    qs('displayRoomCode').textContent = roomCode || '';
+  }
   
   qs('playerCount').textContent = playerIds.length;
   
@@ -398,6 +407,7 @@ function updateLobby(room) {
 
 /**************** FSM ****************/
 function render(room){
+  console.log('[Render] Called with status:', room.status, 'isGM:', room.gameData?.gameMasterId === playerId);
   hideAll();
   const isGM = room.gameData?.gameMasterId === playerId;
   const myWord = room.gameData?.playerWords?.[playerId]?.word;
@@ -405,12 +415,15 @@ function render(room){
 
   switch(room.status){
     case 'lobby': 
+      console.log('[Render] Showing lobby');
       show('lobbyScreen'); 
       break;
     case 'gm-selecting': 
+      console.log('[Render] GM selecting words');
       isGM ? show('wolfWordSelectionScreen') : showWaiting(); 
       break;
     case 'words': 
+      console.log('[Render] Words phase, isGM:', isGM);
       if (isGM) {
         show('gameMasterScreen');
         updateGMScreen(room);
@@ -428,8 +441,13 @@ function render(room){
       }
       break;
     case 'voting': 
-      show('votingScreen');
-      updateVotingScreen(room);
+      if (isGM) {
+        show('gameMasterScreen');
+        updateGMScreen(room);
+      } else {
+        show('votingScreen');
+        updateVotingScreen(room);
+      }
       break;
     case 'wolf-guess':
       const eliminated = room.gameData?.eliminatedPlayer;
@@ -488,6 +506,8 @@ function updateWordScreen(room) {
 }
 
 function updateGMScreen(room) {
+  console.log('[GM Screen] updateGMScreen called, status:', room.status);
+  
   if (qs('gmCitizenWord')) qs('gmCitizenWord').textContent = room.gameData.citizenWord || '';
   if (qs('gmWolfWord')) qs('gmWolfWord').textContent = room.gameData.wolfWord || '';
   
@@ -496,8 +516,7 @@ function updateGMScreen(room) {
   const wolfNames = wolves.map(id => players[id]?.name || id).join(', ');
   if (qs('gmWolfPlayers')) qs('gmWolfPlayers').textContent = wolfNames;
   
-  // Auto-advance to discussion when all players ready (GM triggers this)
-  // Also show manual button for GM to start discussion
+  // Show manual button for GM to start discussion when all players ready
   if (room.status === 'words' && room.gameData?.playerWords) {
     const playerWords = room.gameData.playerWords;
     const ready = Object.values(playerWords).filter(p => p.ready).length;
@@ -505,41 +524,24 @@ function updateGMScreen(room) {
     
     console.log('[GM Screen] Ready check:', {ready, total, status: room.status, isGM: room.gameData?.gameMasterId === playerId});
     
-    // Show manual start button when all ready
+    // Show manual start button
     const gmStartDiscussionBtn = qs('gmStartDiscussionBtn');
-    if (gmStartDiscussionBtn) {
-      if (ready === total && total > 0) {
-        gmStartDiscussionBtn.style.display = 'block';
-        gmStartDiscussionBtn.disabled = false;
-      } else {
-        gmStartDiscussionBtn.style.display = 'none';
-      }
-    }
+    console.log('[GM Screen] Button element found:', gmStartDiscussionBtn !== null);
     
-    if (ready === total && total > 0) {
-      console.log('[GM Screen] All players ready!');
-      // GM is the one who advances
-      if (room.gameData?.gameMasterId === playerId) {
-        console.log('[GM Screen] I am the GM, checking transition schedule...');
-        if (!window.readyTransitionScheduled) {
-          console.log('[GM Screen] Scheduling transition to discussion in 1 second...');
-          window.readyTransitionScheduled = true;
-          setTimeout(() => {
-            window.readyTransitionScheduled = false;
-            database.ref(`rooms/${roomCode}/status`).once('value').then(snap => {
-              console.log('[GM Screen] Checking current status:', snap.val());
-              if (snap.val() === 'words') {
-                console.log('[GM Screen] Transitioning to discussion now!');
-                database.ref(`rooms/${roomCode}/status`).set('discussion');
-              }
-            });
-          }, 1000);
-        } else {
-          console.log('[GM Screen] Transition already scheduled, skipping');
-        }
+    if (gmStartDiscussionBtn) {
+      gmStartDiscussionBtn.style.display = 'block';
+      
+      if (ready === total && total > 0) {
+        console.log('[GM Screen] All ready! Enabling button');
+        gmStartDiscussionBtn.disabled = false;
+        gmStartDiscussionBtn.textContent = '全員準備完了 - 話し合い開始';
       } else {
-        console.log('[GM Screen] I am not the GM, not advancing');
+        console.log('[GM Screen] Not all ready, disabling button. Ready:', ready, 'Total:', total);
+        gmStartDiscussionBtn.disabled = true;
+        gmStartDiscussionBtn.textContent = `準備完了待ち (${ready}/${total})`;
       }
+    } else {
+      console.error('[GM Screen] gmStartDiscussionBtn element not found!');
     }
   } else {
     // Hide the button if not in words phase
@@ -867,32 +869,65 @@ window.gmApproveWolfGuess = function(correct) {
 let discussionInterval=null;
 function syncDiscussionTimer(room){
   clearInterval(discussionInterval);
-  if(room.status!=='discussion') return;
+  
+  if(room.status!=='discussion') {
+    // Clear timer display when not in discussion
+    if(qs('timer')) qs('timer').textContent = '--:--';
+    if(qs('gmTimer')) qs('gmTimer').textContent = '--:--';
+    return;
+  }
+  
+  const duration = room.gameData?.discussionDuration || 180;
+  const startedAt = room.gameData?.discussionStartedAt;
+  
+  if (!startedAt) {
+    // Timer not started yet - show initial duration
+    const m = Math.floor(duration / 60);
+    const s = duration % 60;
+    const txt = `${m}:${String(s).padStart(2,'0')}`;
+    if(qs('timer')) qs('timer').textContent = txt;
+    if(qs('gmTimer')) qs('gmTimer').textContent = txt;
+    return;
+  }
+  
+  // Timer started - update countdown
   discussionInterval=setInterval(()=>{
-    const end=room.gameData.discussionStartedAt+room.gameData.discussionDuration*1000;
-    const r=Math.max(0,end-Date.now());
-    const s=Math.floor(r/1000);
-    const m=Math.floor(s/60);
-    const txt=`${m}:${String(s%60).padStart(2,'0')}`;
-    qs('timer')&&(qs('timer').textContent=txt);
-    qs('gmTimer')&&(qs('gmTimer').textContent=txt);
-    if(r<=0){
+    const end = startedAt + duration * 1000;
+    const r = Math.max(0, end - Date.now());
+    const s = Math.floor(r / 1000);
+    const m = Math.floor(s / 60);
+    const txt = `${m}:${String(s % 60).padStart(2,'0')}`;
+    
+    if(qs('timer')) qs('timer').textContent = txt;
+    if(qs('gmTimer')) qs('gmTimer').textContent = txt;
+    
+    if(r <= 0){
       database.ref(`rooms/${roomCode}/status`).set('voting');
       clearInterval(discussionInterval);
     }
-  },500);
+  }, 500);
 }
 
 /**************** VOTING TIMER (INFO) ****************/
 let votingInterval=null;
 function syncVotingTimer(room){
   clearInterval(votingInterval);
-  if(room.status!=='voting') return;
-  const start=room.gameData.votingStartedAt||Date.now();
-  database.ref(`rooms/${roomCode}/gameData/votingStartedAt`).set(start);
+  
+  if(room.status!=='voting') {
+    if(qs('voteTimer')) qs('voteTimer').textContent = '--:--';
+    return;
+  }
+  
+  // Only set votingStartedAt if it doesn't exist yet
+  if (!room.gameData?.votingStartedAt) {
+    database.ref(`rooms/${roomCode}/gameData/votingStartedAt`).set(Date.now());
+    return; // Wait for next sync with the timestamp
+  }
+  
+  const start = room.gameData.votingStartedAt;
   votingInterval=setInterval(()=>{
     const e=Math.floor((Date.now()-start)/1000);
     const r=Math.max(0,60-e);
-    qs('voteTimer')&&(qs('voteTimer').textContent=`0:${String(r).padStart(2,'0')}`);
+    if(qs('voteTimer')) qs('voteTimer').textContent=`0:${String(r).padStart(2,'0')}`;
   },500);
 }
