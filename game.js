@@ -181,7 +181,22 @@ window.startGame = function() {
       {citizen: '犬', wolf: '猫'},
       {citizen: 'ラーメン', wolf: 'うどん'},
       {citizen: '夏', wolf: '冬'},
-      {citizen: 'りんご', wolf: 'みかん'}
+      {citizen: 'りんご', wolf: 'みかん'},
+      {citizen: 'サッカー', wolf: '野球'},
+      {citizen: '映画', wolf: 'ドラマ'},
+      {citizen: '朝', wolf: '夜'},
+      {citizen: '山', wolf: '海'},
+      {citizen: 'カレー', wolf: 'シチュー'},
+      {citizen: 'ピアノ', wolf: 'ギター'},
+      {citizen: '電車', wolf: 'バス'},
+      {citizen: '漫画', wolf: 'アニメ'},
+      {citizen: 'チョコレート', wolf: 'キャンディ'},
+      {citizen: '医者', wolf: '看護師'},
+      {citizen: 'スマホ', wolf: 'パソコン'},
+      {citizen: '寿司', wolf: '刺身'},
+      {citizen: '読書', wolf: 'ゲーム'},
+      {citizen: '日本', wolf: '中国'},
+      {citizen: 'サンタクロース', wolf: 'トナカイ'}
     ];
     const pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
     
@@ -209,6 +224,11 @@ window.submitGMWords = function() {
   
   if (!citizenWord || !wolfWord) {
     alert('両方のお題を入力してください');
+    return;
+  }
+  
+  if (citizenWord === wolfWord) {
+    alert('市民とウルフのお題は違うものにしてください');
     return;
   }
   
@@ -243,11 +263,14 @@ window.markReady = function() {
 };
 
 window.startDiscussionTimer = function() {
-  database.ref(`rooms/${roomCode}/gameData`).update({
-    discussionStartedAt: Date.now(),
-    gmSessionId
+  database.ref(`rooms/${roomCode}`).once('value').then(snap => {
+    const room = snap.val();
+    database.ref(`rooms/${roomCode}/gameData`).update({
+      discussionStartedAt: Date.now(),
+      gmSessionId
+    });
+    database.ref(`rooms/${roomCode}/status`).set('discussion');
   });
-  database.ref(`rooms/${roomCode}/status`).set('discussion');
 };
 
 window.endDiscussion = function() {
@@ -262,11 +285,42 @@ window.backToLobby = function() {
   });
 };
 
+window.playAgain = function() {
+  database.ref(`rooms/${roomCode}`).once('value').then(snap => {
+    const room = snap.val();
+    
+    // Save settings from last game (except GM selection)
+    const savedSettings = {
+      wolfCount: room.gameData?.wolfCount || 1,
+      wordMode: room.gameData?.wordMode || 'random',
+      discussionDuration: room.gameData?.discussionDuration || 180
+    };
+    
+    // Clear game state and return to lobby with saved settings
+    database.ref(`rooms/${roomCode}`).update({
+      status: 'lobby',
+      gameData: { savedSettings },
+      votes: null
+    });
+  });
+};
+
 /**************** ROOM LISTENER ****************/
 if (roomCode) {
   database.ref(`rooms/${roomCode}`).on('value', snap=>{
     const room = snap.val();
-    if(!room) return;
+    
+    // If room doesn't exist or player was removed, clear localStorage and go home
+    if(!room || !room.players?.[playerId]) {
+      if (!room || !room.players?.[playerId]) {
+        localStorage.removeItem('roomCode');
+        roomCode = null;
+        hideAll();
+        show('homeScreen');
+        return;
+      }
+    }
+    
     currentRoom = room;
     
     // Update lobby
@@ -312,6 +366,20 @@ function updateLobby(room) {
       playerIds.map(pid => `<option value="${pid}">${players[pid].name}</option>`).join('');
   }
   
+  // Pre-fill settings from last game if available
+  if (isHost && room.gameData?.savedSettings) {
+    const saved = room.gameData.savedSettings;
+    if (qs('wolfCountLobby') && saved.wolfCount) {
+      qs('wolfCountLobby').value = saved.wolfCount;
+    }
+    if (qs('wordModeLobby') && saved.wordMode) {
+      qs('wordModeLobby').value = saved.wordMode;
+    }
+    if (qs('timerDuration') && saved.discussionDuration) {
+      qs('timerDuration').value = saved.discussionDuration;
+    }
+  }
+  
   updateStartButton();
 }
 
@@ -351,8 +419,25 @@ function render(room){
       updateVotingScreen(room);
       break;
     case 'wolf-guess':
-      isWolf ? show('wolfGuessScreen') : show('wolfWaitingScreen');
-      if (isWolf) updateWolfGuessScreen(room);
+      const eliminated = room.gameData?.eliminatedPlayer;
+      const isEliminatedWolf = eliminated === playerId && isWolf;
+      
+      if (isEliminatedWolf) {
+        show('wolfGuessScreen');
+        updateWolfGuessScreen(room);
+      } else {
+        show('wolfWaitingScreen');
+        updateWolfWaitingMessage('wolf-guess');
+      }
+      break;
+    case 'gm-reviewing':
+      if (isGM) {
+        show('gmReviewScreen');
+        updateGMReviewScreen(room);
+      } else {
+        show('wolfWaitingScreen');
+        updateWolfWaitingMessage('gm-reviewing');
+      }
       break;
     case 'results': 
       show('resultsScreen');
@@ -372,6 +457,17 @@ function updateWordScreen(room) {
   if (playerWords[playerId]?.ready) {
     qs('readyBtn').disabled = true;
   }
+  
+  // Auto-advance to discussion when all players ready (but don't start timer yet)
+  if (ready === total && total > 0) {
+    // Only GM can advance to avoid duplicate transitions
+    if (room.gameData?.gameMasterId === playerId) {
+      setTimeout(() => {
+        // Move to discussion but DON'T start timer - GM will start it manually
+        database.ref(`rooms/${roomCode}/status`).set('discussion');
+      }, 1000);
+    }
+  }
 }
 
 function updateGMScreen(room) {
@@ -382,6 +478,11 @@ function updateGMScreen(room) {
   const players = room.players || {};
   const wolfNames = wolves.map(id => players[id]?.name || id).join(', ');
   if (qs('gmWolfPlayers')) qs('gmWolfPlayers').textContent = wolfNames;
+  
+  // Show/hide timer controls based on status
+  const isDiscussion = room.status === 'discussion';
+  if (qs('gmTimerDisplay')) qs('gmTimerDisplay').style.display = isDiscussion ? 'block' : 'none';
+  if (qs('gmDiscussionControls')) qs('gmDiscussionControls').style.display = isDiscussion ? 'block' : 'none';
   
   const gmPlayersList = qs('gmPlayersList');
   if (gmPlayersList && room.gameData.playerWords) {
@@ -417,6 +518,14 @@ function updateVotingScreen(room) {
   const totalVoters = Object.keys(players).length - 1; // Exclude GM
   if (qs('votedCount')) qs('votedCount').textContent = votedCount;
   if (qs('totalVoters')) qs('totalVoters').textContent = totalVoters;
+  
+  // Auto-advance when everyone has voted
+  if (votedCount === totalVoters && totalVoters > 0) {
+    // Only GM can tally votes to avoid duplicate tallying
+    if (room.gameData?.gameMasterId === playerId) {
+      setTimeout(() => tallyVotesAndAdvance(), 1000); // Small delay for UX
+    }
+  }
 }
 
 function updateWolfGuessScreen(room) {
@@ -425,11 +534,41 @@ function updateWolfGuessScreen(room) {
     content.innerHTML = `
       <div class="input-group">
         <label for="wolfGuessInput">市民のお題を推理：</label>
-        <input type="text" id="wolfGuessInput" placeholder="お題を入力">
+        <input type="text" id="wolfGuessInput" placeholder="お題を入力" oninput="document.getElementById('wolfGuessBtn').disabled = !this.value.trim()">
       </div>
-      <button onclick="submitWolfGuess(document.getElementById('wolfGuessInput').value)">
+      <button id="wolfGuessBtn" disabled onclick="submitWolfGuess(document.getElementById('wolfGuessInput').value.trim())">
         回答する
       </button>
+    `;
+  }
+}
+
+function updateGMReviewScreen(room) {
+  const players = room.players || {};
+  const eliminated = room.gameData?.eliminatedPlayer;
+  const wolfGuess = room.gameData?.wolfGuess || '';
+  const citizenWord = room.gameData?.citizenWord || '';
+  
+  const content = qs('gmReviewContent');
+  if (content) {
+    content.innerHTML = `
+      <div class="game-info" style="margin-bottom: 20px;">
+        <p><strong>市民のお題：</strong> ${citizenWord}</p>
+        <p><strong>ウルフの回答：</strong> "${wolfGuess}"</p>
+        <p><strong>ウルフ：</strong> ${players[eliminated]?.name || ''}</p>
+      </div>
+      <p class="instruction" style="margin-bottom: 20px;">
+        ウルフの回答は正解ですか？<br>
+        （完全一致でなくても、意味が合っていれば正解にできます）
+      </p>
+      <div style="display: flex; gap: 10px;">
+        <button onclick="gmApproveWolfGuess(true)" style="background: #43e97b; flex: 1;">
+          ✓ 正解
+        </button>
+        <button onclick="gmApproveWolfGuess(false)" style="background: #f5576c; flex: 1;">
+          ✗ 不正解
+        </button>
+      </div>
     `;
   }
 }
@@ -451,6 +590,18 @@ function updateResultsScreen(room) {
     qs('votedPlayerResult').textContent = players[eliminated]?.name || '';
   }
   
+  // Show wolf's guess if it exists
+  const wolfGuessDiv = qs('wolfGuessResultDiv');
+  if (wolfGuessDiv && gameData.wolfGuess) {
+    const eliminatedIsWolf = gameData.playerWords?.[eliminated]?.isWolf;
+    if (eliminatedIsWolf) {
+      wolfGuessDiv.innerHTML = `<p><strong>ウルフの推理：</strong> "${gameData.wolfGuess}"</p>`;
+      wolfGuessDiv.style.display = 'block';
+    } else {
+      wolfGuessDiv.style.display = 'none';
+    }
+  }
+  
   // Vote breakdown
   const breakdown = qs('voteBreakdown');
   if (breakdown) {
@@ -470,11 +621,14 @@ function updateResultsScreen(room) {
   const wolfGuessCorrect = gameData.wolfGuessCorrect;
   
   let winnerText = '';
-  if (wolfGuessCorrect) {
+  if (eliminatedIsWolf && wolfGuessCorrect === true) {
+    // Wolf was voted out but guessed correctly
     winnerText = '🐺 ウルフの勝利！市民のお題を当てました！';
-  } else if (eliminatedIsWolf) {
+  } else if (eliminatedIsWolf && (wolfGuessCorrect === false || wolfGuessCorrect === undefined)) {
+    // Wolf was voted out and either guessed wrong or didn't get to guess (shouldn't happen with new logic)
     winnerText = '👥 市民の勝利！ウルフを見つけました！';
   } else {
+    // Citizen was voted out (wolf was not in top votes)
     winnerText = '🐺 ウルフの勝利！市民を騙しました！';
   }
   
@@ -493,13 +647,27 @@ function showDiscussion(word){
   if (card) card.textContent = word || '';
 }
 
-/**************** GM ACTIONS ****************/
+function updateWolfWaitingMessage(status) {
+  const waitingDiv = qs('wolfWaitingScreen');
+  if (!waitingDiv) return;
+  
+  const gameInfo = waitingDiv.querySelector('.game-info p');
+  if (gameInfo) {
+    if (status === 'wolf-guess') {
+      gameInfo.innerHTML = 'ウルフが市民のお題を推理中...<br>結果をお待ちください。';
+    } else if (status === 'gm-reviewing') {
+      gameInfo.innerHTML = 'GMがウルフの回答を審査中...<br>結果をお待ちください。';
+    }
+  }
+}
+
+/**************** GM ACTIONS (LEGACY - keeping for compatibility) ****************/
+// Note: These are replaced by newer functions but kept in case HTML still references them
 window.submitWords=()=>database.ref(`rooms/${roomCode}/status`).set('words');
 
 window.gmStartDiscussion=()=>{
   database.ref(`rooms/${roomCode}/gameData`).update({
     discussionStartedAt:Date.now(),
-    discussionDuration:180,
     gmSessionId
   });
   database.ref(`rooms/${roomCode}/status`).set('discussion');
@@ -527,32 +695,68 @@ function tallyVotesAndAdvance(){
       tally[v]=(tally[v]||0)+1;
     });
 
-    let max=0, eliminated=null;
-    for(const [pid,count] of Object.entries(tally)){
-      if(count>max){max=count;eliminated=pid;}
+    // Find max vote count
+    let max=0;
+    for(const count of Object.values(tally)){
+      if(count>max) max=count;
+    }
+    
+    // Get all players with max votes (handles ties)
+    const topVoted = Object.keys(tally).filter(pid => tally[pid] === max);
+    
+    // Check if any of the top voted are wolves
+    const wolves = room.gameData.wolves || [];
+    const votedWolves = topVoted.filter(pid => wolves.includes(pid));
+    
+    let eliminated = null;
+    let giveWolfGuess = false;
+    
+    if (votedWolves.length > 0) {
+      // At least one wolf in the tie - wolf gets comeback chance
+      // If multiple wolves tied, pick the first one
+      eliminated = votedWolves[0];
+      giveWolfGuess = true;
+    } else {
+      // No wolves in top votes - citizens failed, go to results
+      // Pick first player with most votes
+      eliminated = topVoted[0];
+      giveWolfGuess = false;
     }
 
     database.ref(`rooms/${roomCode}/gameData/eliminatedPlayer`).set(eliminated);
 
-    const eliminatedIsWolf = room.gameData.playerWords[eliminated]?.isWolf;
     database.ref(`rooms/${roomCode}/status`).set(
-      eliminatedIsWolf ? 'results' : 'wolf-guess'
+      giveWolfGuess ? 'wolf-guess' : 'results'
     );
   });
 }
 
 /**************** WOLF GUESS ****************/
 window.submitWolfGuess=function(guessWord){
+  if (!guessWord || !guessWord.trim()) {
+    alert('お題を入力してください');
+    return;
+  }
+  
   database.ref(`rooms/${roomCode}`).once('value').then(snap=>{
     const room=snap.val();
-    const wolfEntry=Object.entries(room.gameData.playerWords)
-      .find(([_,v])=>v.isWolf);
-    if(!wolfEntry || wolfEntry[0]!==playerId) return;
+    const eliminated = room.gameData.eliminatedPlayer;
+    
+    // Only the eliminated player can submit
+    if(eliminated !== playerId) return;
+    
+    // Verify they are actually a wolf
+    if(!room.gameData.playerWords[playerId]?.isWolf) return;
 
-    const correct=guessWord===room.gameData.citizenWord;
-    database.ref(`rooms/${roomCode}/gameData/wolfGuessCorrect`).set(correct);
-    database.ref(`rooms/${roomCode}/status`).set('results');
+    // Store the wolf's guess for GM to review
+    database.ref(`rooms/${roomCode}/gameData/wolfGuess`).set(guessWord.trim());
+    database.ref(`rooms/${roomCode}/status`).set('gm-reviewing');
   });
+};
+
+window.gmApproveWolfGuess = function(correct) {
+  database.ref(`rooms/${roomCode}/gameData/wolfGuessCorrect`).set(correct);
+  database.ref(`rooms/${roomCode}/status`).set('results');
 };
 
 /**************** DISCUSSION TIMER ****************/

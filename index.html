@@ -360,6 +360,18 @@
                 <p><strong>ウルフのお題：</strong> <span id="gmWolfWord"></span></p>
                 <p><strong>ウルフ：</strong> <span id="gmWolfPlayers"></span></p>
             </div>
+            
+            <!-- Timer display for GM -->
+            <div id="gmTimerDisplay" style="display: none;">
+                <div class="timer" id="gmTimer">--:--</div>
+            </div>
+            
+            <!-- Timer controls for GM -->
+            <div id="gmDiscussionControls" style="display: none; margin: 20px 0;">
+                <button onclick="startDiscussionTimer()">⏱️ タイマースタート</button>
+                <button class="secondary-btn" onclick="endDiscussion()">話し合い終了</button>
+            </div>
+            
             <div class="players-list" style="margin-top: 20px;">
                 <h3 style="margin-bottom: 15px; color: #333;">プレイヤー状態</h3>
                 <div id="gmPlayersList"></div>
@@ -408,6 +420,7 @@
         <div id="votingScreen" class="screen">
             <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">誰がウルフ？</h2>
             <p class="instruction">ウルフだと思うプレイヤーに投票してください！</p>
+            <div class="timer" id="voteTimer" style="font-size: 2em; margin: 20px 0;">--:--</div>
             <div class="voting-grid" id="votingGrid"></div>
             <div id="voteStatus" class="game-info" style="margin-top: 20px;">
                 <p style="text-align: center;">投票済み: <span id="votedCount">0</span>/<span id="totalVoters">0</span></p>
@@ -422,11 +435,13 @@
                 <p><strong>ウルフのお題：</strong> <span id="wolfWordResult"></span></p>
                 <p><strong>ウルフは：</strong> <span id="wolfPlayersResult"></span></p>
                 <p><strong>最多票：</strong> <span id="votedPlayerResult"></span></p>
+                <div id="wolfGuessResultDiv" style="display: none; margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 5px;"></div>
             </div>
             <div id="voteBreakdown" class="game-info"></div>
             <div class="winner" id="winnerText"></div>
             <div id="hostResultControls" style="display: none;">
-                <button onclick="backToLobby()">🔄 ロビーに戻る</button>
+                <button onclick="playAgain()">🎮 もう一度プレイ（同じ設定）</button>
+                <button class="secondary-btn" onclick="backToLobby()">🔄 ロビーに戻る</button>
             </div>
             <button class="secondary-btn" onclick="leaveRoom()">ルームを退出</button>
         </div>
@@ -455,6 +470,12 @@
                     結果をお待ちください。
                 </p>
             </div>
+        </div>
+
+        <!-- GM Review Screen -->
+        <div id="gmReviewScreen" class="screen">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">🎮 GMジャッジ</h2>
+            <div id="gmReviewContent"></div>
         </div>
 
         <!-- Final Results Screen -->
