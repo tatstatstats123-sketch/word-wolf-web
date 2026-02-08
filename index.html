@@ -369,8 +369,8 @@
             
             <!-- Timer controls for GM -->
             <div id="gmDiscussionControls" style="display: none; margin: 20px 0;">
-                <button onclick="startDiscussionTimer()">⏱️ タイマースタート</button>
-                <button class="secondary-btn" onclick="endDiscussion()">話し合い終了</button>
+                <button id="gmStartTimerBtn" onclick="startDiscussionTimer()">⏱️ タイマースタート</button>
+                <button id="gmEndDiscussionBtn" class="secondary-btn" onclick="endDiscussion()" style="display: none;">話し合い終了</button>
             </div>
             
             <div class="players-list" style="margin-top: 20px;">

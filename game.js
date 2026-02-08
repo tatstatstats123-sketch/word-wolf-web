@@ -523,8 +523,8 @@ function updateGMScreen(room) {
   
   // Update button visibility based on timer state
   if (isDiscussion) {
-    const startBtn = document.querySelector('#gmDiscussionControls button[onclick*="startDiscussionTimer"]');
-    const endBtn = document.querySelector('#gmDiscussionControls button[onclick*="endDiscussion"]');
+    const startBtn = qs('gmStartTimerBtn');
+    const endBtn = qs('gmEndDiscussionBtn');
     
     if (startBtn) startBtn.style.display = timerStarted ? 'none' : 'inline-block';
     if (endBtn) endBtn.style.display = timerStarted ? 'inline-block' : 'none';
