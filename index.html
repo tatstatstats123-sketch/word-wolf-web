@@ -379,7 +379,7 @@
             </div>
             
             <!-- Manual start discussion button when all players ready -->
-            <button id="gmStartDiscussionBtn" onclick="database.ref('rooms/' + localStorage.getItem('roomCode') + '/status').set('discussion')" style="display: none; margin-top: 20px;">
+            <button id="gmStartDiscussionBtn" onclick="gmTransitionToDiscussion()" style="display: none; margin-top: 20px;">
                 全員準備完了 - 話し合い開始
             </button>
             

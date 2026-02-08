@@ -501,8 +501,6 @@ function updateWordScreen(room) {
       readyBtn.textContent = '準備完了';
     }
   }
-  
-  // Note: Auto-advance logic is in updateGMScreen since only GM triggers it
 }
 
 function updateGMScreen(room) {
@@ -760,11 +758,8 @@ function updateWolfWaitingMessage(status) {
 // Note: These are replaced by newer functions but kept in case HTML still references them
 window.submitWords=()=>database.ref(`rooms/${roomCode}/status`).set('words');
 
-window.gmStartDiscussion=()=>{
-  database.ref(`rooms/${roomCode}/gameData`).update({
-    discussionStartedAt:Date.now(),
-    gmSessionId
-  });
+window.gmTransitionToDiscussion = function() {
+  console.log('[GM] Manually transitioning to discussion phase');
   database.ref(`rooms/${roomCode}/status`).set('discussion');
 };
 
