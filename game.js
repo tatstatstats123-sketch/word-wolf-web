@@ -497,26 +497,55 @@ function updateGMScreen(room) {
   if (qs('gmWolfPlayers')) qs('gmWolfPlayers').textContent = wolfNames;
   
   // Auto-advance to discussion when all players ready (GM triggers this)
+  // Also show manual button for GM to start discussion
   if (room.status === 'words' && room.gameData?.playerWords) {
     const playerWords = room.gameData.playerWords;
     const ready = Object.values(playerWords).filter(p => p.ready).length;
     const total = Object.keys(playerWords).length;
     
+    console.log('[GM Screen] Ready check:', {ready, total, status: room.status, isGM: room.gameData?.gameMasterId === playerId});
+    
+    // Show manual start button when all ready
+    const gmStartDiscussionBtn = qs('gmStartDiscussionBtn');
+    if (gmStartDiscussionBtn) {
+      if (ready === total && total > 0) {
+        gmStartDiscussionBtn.style.display = 'block';
+        gmStartDiscussionBtn.disabled = false;
+      } else {
+        gmStartDiscussionBtn.style.display = 'none';
+      }
+    }
+    
     if (ready === total && total > 0) {
+      console.log('[GM Screen] All players ready!');
       // GM is the one who advances
       if (room.gameData?.gameMasterId === playerId) {
+        console.log('[GM Screen] I am the GM, checking transition schedule...');
         if (!window.readyTransitionScheduled) {
+          console.log('[GM Screen] Scheduling transition to discussion in 1 second...');
           window.readyTransitionScheduled = true;
           setTimeout(() => {
             window.readyTransitionScheduled = false;
             database.ref(`rooms/${roomCode}/status`).once('value').then(snap => {
+              console.log('[GM Screen] Checking current status:', snap.val());
               if (snap.val() === 'words') {
+                console.log('[GM Screen] Transitioning to discussion now!');
                 database.ref(`rooms/${roomCode}/status`).set('discussion');
               }
             });
           }, 1000);
+        } else {
+          console.log('[GM Screen] Transition already scheduled, skipping');
         }
+      } else {
+        console.log('[GM Screen] I am not the GM, not advancing');
       }
+    }
+  } else {
+    // Hide the button if not in words phase
+    const gmStartDiscussionBtn = qs('gmStartDiscussionBtn');
+    if (gmStartDiscussionBtn) {
+      gmStartDiscussionBtn.style.display = 'none';
     }
   }
   

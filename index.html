@@ -377,6 +377,12 @@
                 <h3 style="margin-bottom: 15px; color: #333;">プレイヤー状態</h3>
                 <div id="gmPlayersList"></div>
             </div>
+            
+            <!-- Manual start discussion button when all players ready -->
+            <button id="gmStartDiscussionBtn" onclick="database.ref('rooms/' + localStorage.getItem('roomCode') + '/status').set('discussion')" style="display: none; margin-top: 20px;">
+                全員準備完了 - 話し合い開始
+            </button>
+            
             <p class="instruction">ゲームの進行を観戦してください。あなたは投票に参加しません。</p>
             <button class="secondary-btn" onclick="leaveRoom()" style="margin-top: 20px;">ルームを退出</button>
         </div>
