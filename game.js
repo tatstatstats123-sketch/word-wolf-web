@@ -484,25 +484,7 @@ function updateWordScreen(room) {
     }
   }
   
-  // Auto-advance to discussion when all players ready (but don't start timer yet)
-  if (ready === total && total > 0 && room.status === 'words') {
-    // Only GM can advance to avoid duplicate transitions
-    if (room.gameData?.gameMasterId === playerId) {
-      // Check if we haven't already scheduled this transition
-      if (!window.readyTransitionScheduled) {
-        window.readyTransitionScheduled = true;
-        setTimeout(() => {
-          window.readyTransitionScheduled = false;
-          // Double-check status hasn't changed
-          database.ref(`rooms/${roomCode}/status`).once('value').then(snap => {
-            if (snap.val() === 'words') {
-              database.ref(`rooms/${roomCode}/status`).set('discussion');
-            }
-          });
-        }, 1000);
-      }
-    }
-  }
+  // Note: Auto-advance logic is in updateGMScreen since only GM triggers it
 }
 
 function updateGMScreen(room) {
@@ -513,6 +495,30 @@ function updateGMScreen(room) {
   const players = room.players || {};
   const wolfNames = wolves.map(id => players[id]?.name || id).join(', ');
   if (qs('gmWolfPlayers')) qs('gmWolfPlayers').textContent = wolfNames;
+  
+  // Auto-advance to discussion when all players ready (GM triggers this)
+  if (room.status === 'words' && room.gameData?.playerWords) {
+    const playerWords = room.gameData.playerWords;
+    const ready = Object.values(playerWords).filter(p => p.ready).length;
+    const total = Object.keys(playerWords).length;
+    
+    if (ready === total && total > 0) {
+      // GM is the one who advances
+      if (room.gameData?.gameMasterId === playerId) {
+        if (!window.readyTransitionScheduled) {
+          window.readyTransitionScheduled = true;
+          setTimeout(() => {
+            window.readyTransitionScheduled = false;
+            database.ref(`rooms/${roomCode}/status`).once('value').then(snap => {
+              if (snap.val() === 'words') {
+                database.ref(`rooms/${roomCode}/status`).set('discussion');
+              }
+            });
+          }, 1000);
+        }
+      }
+    }
+  }
   
   // Show/hide timer controls based on status and whether timer has started
   const isDiscussion = room.status === 'discussion';
