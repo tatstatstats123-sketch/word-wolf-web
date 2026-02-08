@@ -70,6 +70,7 @@ window.createRoom = function() {
     qs('displayRoomCode').textContent = code;
     hideAll();
     show('lobbyScreen');
+    attachRoomListener(); // Attach listener after creating room
   });
 };
 
@@ -98,6 +99,7 @@ window.joinRoom = function() {
       qs('displayRoomCode').textContent = code;
       hideAll();
       show('lobbyScreen');
+      attachRoomListener(); // Attach listener after joining room
     });
   });
 };
@@ -105,6 +107,14 @@ window.joinRoom = function() {
 window.leaveRoom = function() {
   if (!roomCode) return;
   
+  // Detach Firebase listener
+  database.ref(`rooms/${roomCode}`).off();
+  
+  // Clear any running intervals
+  clearInterval(discussionInterval);
+  clearInterval(votingInterval);
+  
+  // Remove player from room
   database.ref(`rooms/${roomCode}/players/${playerId}`).remove().then(() => {
     localStorage.removeItem('roomCode');
     roomCode = null;
@@ -306,7 +316,9 @@ window.playAgain = function() {
 };
 
 /**************** ROOM LISTENER ****************/
-if (roomCode) {
+function attachRoomListener() {
+  if (!roomCode) return;
+  
   database.ref(`rooms/${roomCode}`).on('value', snap=>{
     const room = snap.val();
     
@@ -332,6 +344,11 @@ if (roomCode) {
     syncDiscussionTimer(room);
     syncVotingTimer(room);
   });
+}
+
+// Attach listener on page load if room code exists
+if (roomCode) {
+  attachRoomListener();
 } else {
   // Show home screen if no room code
   hideAll();
@@ -459,13 +476,22 @@ function updateWordScreen(room) {
   }
   
   // Auto-advance to discussion when all players ready (but don't start timer yet)
-  if (ready === total && total > 0) {
+  if (ready === total && total > 0 && room.status === 'words') {
     // Only GM can advance to avoid duplicate transitions
     if (room.gameData?.gameMasterId === playerId) {
-      setTimeout(() => {
-        // Move to discussion but DON'T start timer - GM will start it manually
-        database.ref(`rooms/${roomCode}/status`).set('discussion');
-      }, 1000);
+      // Check if we haven't already scheduled this transition
+      if (!window.readyTransitionScheduled) {
+        window.readyTransitionScheduled = true;
+        setTimeout(() => {
+          window.readyTransitionScheduled = false;
+          // Double-check status hasn't changed
+          database.ref(`rooms/${roomCode}/status`).once('value').then(snap => {
+            if (snap.val() === 'words') {
+              database.ref(`rooms/${roomCode}/status`).set('discussion');
+            }
+          });
+        }, 1000);
+      }
     }
   }
 }
@@ -520,10 +546,22 @@ function updateVotingScreen(room) {
   if (qs('totalVoters')) qs('totalVoters').textContent = totalVoters;
   
   // Auto-advance when everyone has voted
-  if (votedCount === totalVoters && totalVoters > 0) {
+  if (votedCount === totalVoters && totalVoters > 0 && room.status === 'voting') {
     // Only GM can tally votes to avoid duplicate tallying
     if (room.gameData?.gameMasterId === playerId) {
-      setTimeout(() => tallyVotesAndAdvance(), 1000); // Small delay for UX
+      // Check if we haven't already scheduled tallying
+      if (!window.voteTransitionScheduled) {
+        window.voteTransitionScheduled = true;
+        setTimeout(() => {
+          window.voteTransitionScheduled = false;
+          // Double-check status hasn't changed
+          database.ref(`rooms/${roomCode}/status`).once('value').then(snap => {
+            if (snap.val() === 'voting') {
+              tallyVotesAndAdvance();
+            }
+          });
+        }, 1000);
+      }
     }
   }
 }
@@ -685,9 +723,16 @@ window.castVote=function(targetId){
 };
 
 function tallyVotesAndAdvance(){
+  // Prevent duplicate tallying
+  if (window.tallyingInProgress) return;
+  window.tallyingInProgress = true;
+  
   database.ref(`rooms/${roomCode}`).once('value').then(snap=>{
     const room=snap.val();
-    if(room.gameData.gameMasterId!==playerId) return;
+    if(room.gameData.gameMasterId!==playerId) {
+      window.tallyingInProgress = false;
+      return;
+    }
 
     const votes=room.votes||{};
     const tally={};
@@ -727,7 +772,11 @@ function tallyVotesAndAdvance(){
 
     database.ref(`rooms/${roomCode}/status`).set(
       giveWolfGuess ? 'wolf-guess' : 'results'
-    );
+    ).then(() => {
+      window.tallyingInProgress = false;
+    });
+  }).catch(() => {
+    window.tallyingInProgress = false;
   });
 }
 
