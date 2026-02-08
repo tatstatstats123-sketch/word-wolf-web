@@ -273,13 +273,9 @@ window.markReady = function() {
 };
 
 window.startDiscussionTimer = function() {
-  database.ref(`rooms/${roomCode}`).once('value').then(snap => {
-    const room = snap.val();
-    database.ref(`rooms/${roomCode}/gameData`).update({
-      discussionStartedAt: Date.now(),
-      gmSessionId
-    });
-    database.ref(`rooms/${roomCode}/status`).set('discussion');
+  database.ref(`rooms/${roomCode}/gameData`).update({
+    discussionStartedAt: Date.now(),
+    gmSessionId
   });
 };
 
@@ -471,8 +467,21 @@ function updateWordScreen(room) {
   if (qs('readyCount')) qs('readyCount').textContent = ready;
   if (qs('totalPlayers')) qs('totalPlayers').textContent = total;
   
-  if (playerWords[playerId]?.ready) {
-    qs('readyBtn').disabled = true;
+  const myWord = playerWords[playerId]?.word;
+  const readyBtn = qs('readyBtn');
+  
+  // Disable ready button if no word assigned yet OR already marked ready
+  if (readyBtn) {
+    if (!myWord) {
+      readyBtn.disabled = true;
+      readyBtn.textContent = 'お題を待っています...';
+    } else if (playerWords[playerId]?.ready) {
+      readyBtn.disabled = true;
+      readyBtn.textContent = '準備完了';
+    } else {
+      readyBtn.disabled = false;
+      readyBtn.textContent = '準備完了';
+    }
   }
   
   // Auto-advance to discussion when all players ready (but don't start timer yet)
@@ -505,10 +514,21 @@ function updateGMScreen(room) {
   const wolfNames = wolves.map(id => players[id]?.name || id).join(', ');
   if (qs('gmWolfPlayers')) qs('gmWolfPlayers').textContent = wolfNames;
   
-  // Show/hide timer controls based on status
+  // Show/hide timer controls based on status and whether timer has started
   const isDiscussion = room.status === 'discussion';
-  if (qs('gmTimerDisplay')) qs('gmTimerDisplay').style.display = isDiscussion ? 'block' : 'none';
+  const timerStarted = room.gameData?.discussionStartedAt;
+  
+  if (qs('gmTimerDisplay')) qs('gmTimerDisplay').style.display = isDiscussion && timerStarted ? 'block' : 'none';
   if (qs('gmDiscussionControls')) qs('gmDiscussionControls').style.display = isDiscussion ? 'block' : 'none';
+  
+  // Update button visibility based on timer state
+  if (isDiscussion) {
+    const startBtn = document.querySelector('#gmDiscussionControls button[onclick*="startDiscussionTimer"]');
+    const endBtn = document.querySelector('#gmDiscussionControls button[onclick*="endDiscussion"]');
+    
+    if (startBtn) startBtn.style.display = timerStarted ? 'none' : 'inline-block';
+    if (endBtn) endBtn.style.display = timerStarted ? 'inline-block' : 'none';
+  }
   
   const gmPlayersList = qs('gmPlayersList');
   if (gmPlayersList && room.gameData.playerWords) {
@@ -516,7 +536,7 @@ function updateGMScreen(room) {
     gmPlayersList.innerHTML = Object.entries(playerWords).map(([pid, data]) => `
       <div class="player-item">
         <span class="player-name">${players[pid]?.name || pid}</span>
-        <span>${data.isWolf ? '🐺 Wolf' : '👤 Citizen'} - ${data.ready ? '✓ Ready' : 'Waiting...'}</span>
+        <span>${data.isWolf ? '🐺 ウルフ' : '👤 市民'} - ${data.ready ? '✓ 準備完了' : '待機中...'}</span>
       </div>
     `).join('');
   }
