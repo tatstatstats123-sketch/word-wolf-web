@@ -343,6 +343,7 @@ function attachRoomListener() {
     render(room);
     syncDiscussionTimer(room);
     syncVotingTimer(room);
+    syncWolfGuessTimer(room);
   });
 }
 
@@ -441,19 +442,22 @@ function render(room){
       }
       break;
     case 'voting': 
+      console.log('[Render] Voting phase, isGM:', isGM);
       if (isGM) {
+        console.log('[Render] Showing gmVotingScreen');
         show('gmVotingScreen');
         updateGMVotingScreen(room);
       } else {
+        console.log('[Render] Showing votingScreen');
         show('votingScreen');
         updateVotingScreen(room);
       }
       break;
     case 'wolf-guess':
-      const eliminated = room.gameData?.eliminatedPlayer;
-      const isEliminatedWolf = eliminated === playerId && isWolf;
+      const guessingWolf = room.gameData?.guessingWolf;
+      const isGuessingWolf = guessingWolf === playerId;
       
-      if (isEliminatedWolf) {
+      if (isGuessingWolf) {
         show('wolfGuessScreen');
         updateWolfGuessScreen(room);
       } else {
@@ -602,9 +606,13 @@ function updateVotingScreen(room) {
 }
 
 function updateGMVotingScreen(room) {
+  console.log('[GM Voting] updateGMVotingScreen called');
+  
   const players = room.players || {};
   const votes = room.votes || {};
   const gmId = room.gameData?.gameMasterId;
+  
+  console.log('[GM Voting] Players:', Object.keys(players).length, 'Votes:', Object.keys(votes).length);
   
   // Show game info
   if (qs('gmVotingCitizenWord')) qs('gmVotingCitizenWord').textContent = room.gameData?.citizenWord || '';
@@ -636,16 +644,24 @@ function updateGMVotingScreen(room) {
   if (qs('gmVotedCount')) qs('gmVotedCount').textContent = votedCount;
   if (qs('gmTotalVoters')) qs('gmTotalVoters').textContent = totalVoters;
   
+  console.log('[GM Voting] Vote count:', votedCount, '/', totalVoters);
+  
   // Enable/disable tally button based on voting status
   const gmTallyBtn = qs('gmTallyVotesBtn');
+  console.log('[GM Voting] Tally button found:', gmTallyBtn !== null);
+  
   if (gmTallyBtn) {
     if (votedCount === totalVoters && totalVoters > 0) {
+      console.log('[GM Voting] All voted! Enabling button');
       gmTallyBtn.disabled = false;
       gmTallyBtn.textContent = '全員投票完了 - 投票集計';
     } else {
+      console.log('[GM Voting] Not all voted, disabling button');
       gmTallyBtn.disabled = true;
       gmTallyBtn.textContent = `投票待ち (${votedCount}/${totalVoters})`;
     }
+  } else {
+    console.error('[GM Voting] gmTallyVotesBtn element not found!');
   }
 }
 
@@ -666,7 +682,7 @@ function updateWolfGuessScreen(room) {
 
 function updateGMReviewScreen(room) {
   const players = room.players || {};
-  const eliminated = room.gameData?.eliminatedPlayer;
+  const guessingWolf = room.gameData?.guessingWolf;
   const wolfGuess = room.gameData?.wolfGuess || '';
   const citizenWord = room.gameData?.citizenWord || '';
   
@@ -676,7 +692,7 @@ function updateGMReviewScreen(room) {
       <div class="game-info" style="margin-bottom: 20px;">
         <p><strong>市民のお題：</strong> ${citizenWord}</p>
         <p><strong>ウルフの回答：</strong> "${wolfGuess}"</p>
-        <p><strong>ウルフ：</strong> ${players[eliminated]?.name || ''}</p>
+        <p><strong>推理したウルフ：</strong> ${players[guessingWolf]?.name || ''}</p>
       </div>
       <p class="instruction" style="margin-bottom: 20px;">
         ウルフの回答は正解ですか？<br>
@@ -714,13 +730,10 @@ function updateResultsScreen(room) {
   // Show wolf's guess if it exists
   const wolfGuessDiv = qs('wolfGuessResultDiv');
   if (wolfGuessDiv && gameData.wolfGuess) {
-    const eliminatedIsWolf = gameData.playerWords?.[eliminated]?.isWolf;
-    if (eliminatedIsWolf) {
-      wolfGuessDiv.innerHTML = `<p><strong>ウルフの推理：</strong> "${gameData.wolfGuess}"</p>`;
-      wolfGuessDiv.style.display = 'block';
-    } else {
-      wolfGuessDiv.style.display = 'none';
-    }
+    wolfGuessDiv.innerHTML = `<p><strong>ウルフの推理：</strong> "${gameData.wolfGuess}"</p>`;
+    wolfGuessDiv.style.display = 'block';
+  } else {
+    if (wolfGuessDiv) wolfGuessDiv.style.display = 'none';
   }
   
   // Vote breakdown
@@ -742,14 +755,23 @@ function updateResultsScreen(room) {
   const wolfGuessCorrect = gameData.wolfGuessCorrect;
   
   let winnerText = '';
-  if (eliminatedIsWolf && wolfGuessCorrect === true) {
-    // Wolf was voted out but guessed correctly
-    winnerText = '🐺 ウルフの勝利！市民のお題を当てました！';
-  } else if (eliminatedIsWolf && (wolfGuessCorrect === false || wolfGuessCorrect === undefined)) {
-    // Wolf was voted out and either guessed wrong or didn't get to guess (shouldn't happen with new logic)
+  if (wolfGuessCorrect === true && !eliminatedIsWolf) {
+    // Wolf NOT voted out and guessed correctly - 完全勝利 (Perfect Win)!
+    winnerText = '🐺 ウルフの完全勝利！市民を騙して、お題も当てました！';
+  } else if (wolfGuessCorrect === true && eliminatedIsWolf) {
+    // Wolf was voted out but guessed correctly - 逆転勝利 (Comeback Win)
+    winnerText = '🐺 ウルフの勝利！市民のお題を当てて逆転しました！';
+  } else if (eliminatedIsWolf && wolfGuessCorrect === false) {
+    // Wolf was voted out and guessed wrong
+    winnerText = '👥 市民の勝利！ウルフを見つけて推理も防ぎました！';
+  } else if (eliminatedIsWolf) {
+    // Wolf was voted out but didn't answer or timed out
     winnerText = '👥 市民の勝利！ウルフを見つけました！';
+  } else if (wolfGuessCorrect === false) {
+    // Citizen was voted out, wolf guessed wrong
+    winnerText = '👥 市民の勝利！投票は失敗しましたが、ウルフの推理を防ぎました！';
   } else {
-    // Citizen was voted out (wolf was not in top votes)
+    // Citizen was voted out, wolf didn't answer or timed out
     winnerText = '🐺 ウルフの勝利！市民を騙しました！';
   }
   
@@ -833,26 +855,22 @@ function tallyVotesAndAdvance(){
     const wolves = room.gameData.wolves || [];
     const votedWolves = topVoted.filter(pid => wolves.includes(pid));
     
-    let eliminated = null;
-    let giveWolfGuess = false;
+    let eliminated = topVoted[0]; // Most voted player
+    let guessingWolf = null;
     
-    if (votedWolves.length > 0) {
-      // At least one wolf in the tie - wolf gets comeback chance
-      // If multiple wolves tied, pick the first one
-      eliminated = votedWolves[0];
-      giveWolfGuess = true;
-    } else {
-      // No wolves in top votes - citizens failed, go to results
-      // Pick first player with most votes
-      eliminated = topVoted[0];
-      giveWolfGuess = false;
+    // ALWAYS give a wolf the chance to guess for 完全勝利 (perfect win)
+    // If multiple wolves, randomly select one
+    if (wolves.length > 0) {
+      guessingWolf = wolves[Math.floor(Math.random() * wolves.length)];
     }
+    
+    database.ref(`rooms/${roomCode}/gameData`).update({
+      eliminatedPlayer: eliminated,
+      guessingWolf: guessingWolf,
+      wolfGuessStartedAt: Date.now() // Start timer for wolf guess phase
+    });
 
-    database.ref(`rooms/${roomCode}/gameData/eliminatedPlayer`).set(eliminated);
-
-    database.ref(`rooms/${roomCode}/status`).set(
-      giveWolfGuess ? 'wolf-guess' : 'results'
-    ).then(() => {
+    database.ref(`rooms/${roomCode}/status`).set('wolf-guess').then(() => {
       window.tallyingInProgress = false;
     });
   }).catch(() => {
@@ -956,4 +974,35 @@ function syncVotingTimer(room){
     if(qs('voteTimer')) qs('voteTimer').textContent = txt;
     if(qs('gmVoteTimer')) qs('gmVoteTimer').textContent = txt;
   },500);
+}
+
+/**************** WOLF GUESS TIMER ****************/
+let wolfGuessInterval=null;
+function syncWolfGuessTimer(room){
+  clearInterval(wolfGuessInterval);
+  
+  if(room.status!=='wolf-guess') {
+    if(qs('wolfGuessTimer')) qs('wolfGuessTimer').textContent = '--:--';
+    return;
+  }
+  
+  const startedAt = room.gameData?.wolfGuessStartedAt;
+  if (!startedAt) return;
+  
+  const duration = 60; // 1 minute
+  wolfGuessInterval=setInterval(()=>{
+    const end = startedAt + duration * 1000;
+    const r = Math.max(0, end - Date.now());
+    const s = Math.floor(r / 1000);
+    const txt = `0:${String(s).padStart(2,'0')}`;
+    
+    if(qs('wolfGuessTimer')) qs('wolfGuessTimer').textContent = txt;
+    
+    if(r <= 0){
+      // Time's up! Auto-transition to gm-reviewing with empty guess
+      clearInterval(wolfGuessInterval);
+      database.ref(`rooms/${roomCode}/gameData/wolfGuess`).set('(時間切れ)');
+      database.ref(`rooms/${roomCode}/status`).set('gm-reviewing');
+    }
+  }, 500);
 }
